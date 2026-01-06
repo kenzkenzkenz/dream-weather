@@ -1,138 +1,104 @@
 import { useState } from 'react'
 import './App.css'
+import Match from './Match';
+import Form from './Form';
+import Loader from './Loader';
+import TryAgainButton from './TryAgainButton';
 
 function App() {
-  const [time, setTime] = useState();
-  const [precip, setPrecip] = useState();
-  const [temp, setTemp] = useState();
+  const [match, setMatch] = useState(null);
+  const [status, setStatus] = useState('idle'); // 'idle' | 'loading' | 'error' | 'success' | 'no-data' | 'rate-limit'
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    const userPrefs = { time, precip, temp };
-    console.log(userPrefs);
-  }
+  const handleSubmit = async (formData) => {
+    setStatus('loading');
+    try {
+      const response = await fetch('http://192.168.1.134:8080/api/v1/livestream/match', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData)
+      });
+
+      if (!response.ok) {
+        if (response.status === 404) {
+          setStatus('no-data');
+        }
+        else if (response.status === 429) {
+          setStatus('rate-limit');
+        }
+        else {
+          setStatus('error');
+        }
+        return;
+      }
+
+      const data = await response.json();
+      if (!data) {
+        setStatus('no-data');
+        return;
+      }
+
+      setMatch(data);
+      setStatus('success');
+    } catch (error) {
+      setStatus('error');
+    }
+  };
 
   return (
-    <>
-      <h1>Dream Weather</h1>
-      <p>
-        Tell us what vibe you want, and we'll send you to the perfect location.
-      </p>
+    <div>
+      {status === 'idle' && <Form onSubmit={handleSubmit} />}
+      {status === 'loading' && <Loader duration={8000} />}
+      {status === 'error' && (
+        <div>
+          <p>There was an error fetching your match. Please try again.</p>
+          <TryAgainButton onClick={() => setStatus('idle')} />
+        </div>
+      )}
+      {status === 'no-data' && (
+        <div>
+          <p>No matching locations found. Try again later.</p>
+          <TryAgainButton onClick={() => setStatus('idle')} />
+        </div>
+      )}
+      {status === "rate-limit" && (
+        <div>
+          <p>Too many requests! Maybe take a break and go outside.</p>
+          <TryAgainButton onClick={() => setStatus("idle")} />
+        </div>
+      )}
 
-<form onSubmit={handleSubmit}>
-      <strong>Time of Day</strong>
-      <div>
+      {status === 'success' && (
+        <div>
+          <Match match={match} />
+          <TryAgainButton
+            onClick={() => {
+              setStatus('idle');
+              setMatch(null);
+            }}
+          />
+        </div>
+      )}
 
-        <label style={{ marginRight: "20px" }}>
-          <input 
-            type="radio" 
-            id="day" 
-            name="time" 
-            value="day" 
-            onChange={(e) => setTime(e.target.value)} />
-          <label for="day">Day</label>
-        </label>
+      <footer style={{ fontSize: '0.75rem', textAlign: 'center', marginTop: '2rem' }}>
+        Webcam data provided by{' '}
+        <a href="https://openwebcamdb.com" target="_blank" rel="noopener noreferrer">OpenWebcamDB.</a>
+        {"  "}
+        Weather data provided by{' '}
+        <a href="https://www.weather.gov" target="_blank" rel="noopener noreferrer">NOAA / NWS.</a>
+        <br />
+        App developed by{' '}
+        <a href="https://github.com/kenzkenzkenz" target="_blank" rel="noopener noreferrer">Mackenzie Allen.</a>
+        {"  "}
+        <a href="https://github.com/kenzkenzkenz/dream-weather" target="_blank" rel="noopener noreferrer">
+          View source code on GitHub.
+        </a>
+        <br />
+        <em>(US Edition)</em>
+      </footer>
 
-        <label style={{ marginRight: "20px" }}>
-          <input 
-            type="radio" 
-            id="night" 
-            name="time" 
-            value="night" 
-            onChange={(e) => setTime(e.target.value)} />
-          <label for="night">Night</label>
-        </label>
-
-          <label style={{ marginRight: "20px" }}>
-          <input 
-            type="radio" 
-            id="dawnDusk" 
-            name="time" 
-            value="dawnDusk" 
-            onChange={(e) => setTime(e.target.value)} />
-          <label for="dawnDusk">Dawn/Dusk</label>
-        </label>
-      </div>
-
-      <br/>
-
-      <strong>Precipitation</strong>
-      <div>
-        <label style={{ marginRight: "20px" }}>
-          <input 
-            type="radio" 
-            id="none" 
-            name="precip" 
-            value="none"
-            onChange={(e) => setPrecip(e.target.value)} />
-          <label for="none">None</label>
-        </label>
-
-        <label style={{ marginRight: "20px" }}>
-          <input 
-            type="radio" 
-            id="rain" 
-            name="precip" 
-            value="rain"
-            onChange={(e) => setPrecip(e.target.value)} />
-          <label for="rain">Rain</label>
-        </label>
-
-        <label style={{ marginRight: "20px" }}>
-          <input 
-            type="radio" 
-            id="snow" 
-            name="precip" 
-            value="snow"
-            onChange={(e) => setPrecip(e.target.value)} />
-          <label for="snow">Snow</label>
-        </label>
-      </div>
-
-      <br/>
-
-      <strong>Temperature</strong>
-      <div>
-        <label style={{ marginRight: "20px" }}>
-          <input 
-            type="radio" 
-            id="cold" 
-            name="temp" 
-            value="cold"
-            onChange={(e) => setTemp(e.target.value)} />
-          <label for="cold">Cold</label>
-        </label>
-
-        <label style={{ marginRight: "20px" }}>
-          <input 
-            type="radio" 
-            id="mild" 
-            name="temp" 
-            value="mild"
-            onChange={(e) => setTemp(e.target.value)} />
-          <label for="mild">Mild</label>
-        </label>
-
-        <label style={{ marginRight: "20px" }}>
-          <input 
-            type="radio" 
-            id="hot" 
-            name="temp" 
-            value="hot"
-            onChange={(e) => setTemp(e.target.value)} />
-          <label for="hot">Hot</label>
-        </label>
-      </div>
-
-      <br/>
-      <div>
-        <button
-          onClick={handleSubmit}
-          >Let's go!</button>
-      </div>
-      </form>
-
-    </>
+    </div>
   )
 }
 
