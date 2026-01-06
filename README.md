@@ -6,7 +6,7 @@ A React + Spring Boot application that gives users a location match based on the
 
 ##  Live Demo
 
-This project is hosted at: [https://dream-weather.onrender.com/](https://dream-weather.onrender.com/)
+This project is hosted at: [https://dream-weather-frontend.onrender.com/](https://dream-weather-frontend.onrender.com/)
 
 ---
 
