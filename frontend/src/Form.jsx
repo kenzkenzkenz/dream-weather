@@ -10,21 +10,24 @@ export default function Form({ onSubmit }) {
     const [precip, setPrecip] = useState();
     const [temp, setTemp] = useState();
     const [warning, setWarning] = useState("");
-    const [disableSubmit, setDisableSubmit] = useState(false);
+    const [disableSubmit, setDisableSubmit] = useState(true);
 
     useEffect(() => {
-        if (precip && temp) {
-            if (precip === 'snow' && temp === 'hot') {
-                setWarning("The weather doesn't work like that! Try something else.");
-                setDisableSubmit(true);
-            } else {
-                setWarning("");
-                setDisableSubmit(false);
-            }
-        } else {
+        if (!precip || !temp) {
             setWarning("");
-            setDisableSubmit(false);
+            setDisableSubmit(true);
+            return;
         }
+    
+        if (precip === 'snow' && temp === 'hot') {
+            setWarning("The weather doesn't work like that! Try something else.");
+            setDisableSubmit(true);
+            return;
+        }
+
+        setWarning("");
+        setDisableSubmit(false);
+        
     }, [precip, temp]);
 
     const handleSubmit = (e) => {
