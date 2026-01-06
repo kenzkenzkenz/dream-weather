@@ -12,7 +12,7 @@ function App() {
   const handleSubmit = async (formData) => {
     setStatus('loading');
     try {
-      const response = await fetch('http://192.168.1.134:8080/api/v1/livestream/match', {
+      const response = await fetch('${backendUrl}/api/v1/livestream/match', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
