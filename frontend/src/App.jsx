@@ -9,10 +9,12 @@ function App() {
   const [match, setMatch] = useState(null);
   const [status, setStatus] = useState('idle'); // 'idle' | 'loading' | 'error' | 'success' | 'no-data' | 'rate-limit'
 
+  const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8080';
+
   const handleSubmit = async (formData) => {
     setStatus('loading');
     try {
-      const response = await fetch('${backendUrl}/api/v1/livestream/match', {
+      const response = await fetch(`${backendUrl}/api/v1/livestream/match`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
