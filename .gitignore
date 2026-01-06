@@ -1,0 +1,48 @@
+# =======================
+# FRONTEND (Node / React)
+# =======================
+node_modules/
+dist/
+dist-ssr/
+*.local
+
+# Frontend logs
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# VS Code
+.vscode/*
+!.vscode/extensions.json
+
+# =======================
+# BACKEND (Spring Boot / Java)
+# =======================
+# Build output
+backend/target/
+backend/bin/
+backend/out/
+
+# Eclipse / IDE files
+backend/.classpath
+backend/.project
+backend/.settings/
+backend/.recommenders/
+backend/*.iml
+
+# Backend logs
+backend/logs/
+backend/*.log
+
+# =======================
+# GENERAL / OS / EDITORS
+# =======================
+.idea/
+.DS_Store
+Thumbs.db
+Desktop.ini
+*.bak
+*.swp
