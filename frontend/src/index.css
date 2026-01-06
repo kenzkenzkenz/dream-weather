@@ -54,6 +54,17 @@ button:focus-visible {
   outline: 4px auto -webkit-focus-ring-color;
 }
 
+.loader {
+  text-align: center;
+  padding: 2rem;
+}
+
+.loader-message {
+  margin-top: 1rem;
+  font-size: 1.1rem;
+  color: #333;
+}
+
 @media (prefers-color-scheme: light) {
   :root {
     color: #213547;
