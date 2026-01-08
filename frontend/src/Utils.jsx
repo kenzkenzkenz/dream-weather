@@ -1,8 +1,5 @@
-export const getMessages = (isServerAwake) => {
+export const getMessages = () => {
   let msgs = [];
-  if (!isServerAwake) {
-    msgs.push("Waking up server...");
-  }
   msgs.push(
     "Fetching locations…",
     "Checking the forecast…",

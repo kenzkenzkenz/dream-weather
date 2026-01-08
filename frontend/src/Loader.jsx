@@ -5,11 +5,11 @@ import { getMessages } from './Utils';
 
 export default function Loader({ duration = 4000, isServerAwake }) {
   const [index, setIndex] = useState(0);
-  const messages = getMessages(isServerAwake);
-
+  const messages = getMessages();
   const stepTime = duration / (messages.length - 1);
 
   useEffect(() => {
+    if (!isServerAwake) return;
     const interval = setInterval(() => {
       setIndex((prev) => {
         if (prev < messages.length - 1) {
@@ -19,21 +19,22 @@ export default function Loader({ duration = 4000, isServerAwake }) {
       });
     }, stepTime);
     return () => clearInterval(interval);
-  }, [stepTime, messages.length]);
+  }, [stepTime, messages.length, isServerAwake]);
 
   const safeIndex = Math.min(index, messages.length - 1);
 
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        padding: "2rem"
-      }}
-    >
-      <ClipLoader color="#3498db" size={45} />
-      <p className="loader-message">{messages[safeIndex]}</p>
+    <div>
+      <div 
+      style={{ 
+        display: 'flex', 
+        flexDirection: 'column', 
+        alignItems: 'center', 
+        padding: '2rem' 
+      }}>
+        <ClipLoader color="#3498db" size={45} />
+        <p className="loader-message">{!isServerAwake ? "Waking up server" : messages[safeIndex]}</p>
+      </div>
     </div>
   );
 }

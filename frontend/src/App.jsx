@@ -9,7 +9,7 @@ import { PuffLoader } from "react-spinners";
 function App() {
   const [match, setMatch] = useState(null);
   const [status, setStatus] = useState('idle'); // 'idle' | 'loading' | 'error' | 'success' | 'no-data' | 'rate-limit'
-  const [isServerAwake, setIsServerAwake] = useState();
+  const [isServerAwake, setIsServerAwake] = useState(false);
   const hasCalledWakeUp = useRef(false);
   const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8080';
   const headers = {
