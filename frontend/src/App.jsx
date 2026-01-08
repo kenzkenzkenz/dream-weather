@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import './App.css'
 import Match from './Match';
 import Form from './Form';
@@ -10,14 +10,17 @@ function App() {
   const [match, setMatch] = useState(null);
   const [status, setStatus] = useState('idle'); // 'idle' | 'loading' | 'error' | 'success' | 'no-data' | 'rate-limit'
   const [isServerAwake, setIsServerAwake] = useState();
-
+  const hasCalledWakeUp = useRef(false);
   const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8080';
   const headers = {
     'Content-Type': 'application/json',
   };
 
   useEffect(() => {
-    wakeUp();
+    if(!hasCalledWakeUp.current) {
+      wakeUp();
+      hasCalledWakeUp.current = true;
+    }
   }, []);
 
   const wakeUp = async () => {
