@@ -1,20 +1,15 @@
 import React from "react";
 import { ClipLoader } from "react-spinners";
 import { useEffect, useState } from "react";
+import { getMessages } from './Utils';
 
-const messages = [
-  "Fetching locations…",
-  "Checking the forecast…",
-  "Finding the perfect webcam…",
-  "Almost there…"
-];
-
-export default function Loader({ duration = 4000 }) {
+export default function Loader({ duration = 4000, isServerAwake }) {
   const [index, setIndex] = useState(0);
+  const messages = getMessages(isServerAwake);
+
+  const stepTime = duration / (messages.length - 1);
 
   useEffect(() => {
-    const stepTime = duration / messages.length - 1;
-
     const interval = setInterval(() => {
       setIndex((prev) => {
         if (prev < messages.length - 1) {
@@ -23,9 +18,10 @@ export default function Loader({ duration = 4000 }) {
         return prev;
       });
     }, stepTime);
-
     return () => clearInterval(interval);
-  }, [duration]);
+  }, [stepTime, messages.length]);
+
+  const safeIndex = Math.min(index, messages.length - 1);
 
   return (
     <div
@@ -37,7 +33,7 @@ export default function Loader({ duration = 4000 }) {
       }}
     >
       <ClipLoader color="#3498db" size={45} />
-      <p className="loader-message">{messages[index]}</p>
+      <p className="loader-message">{messages[safeIndex]}</p>
     </div>
   );
 }

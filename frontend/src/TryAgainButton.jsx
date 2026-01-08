@@ -8,7 +8,7 @@ export default function TryAgainButton({ onClick }) {
         marginTop: "1rem",
         padding: "0.5rem 1rem",
         fontSize: "0.9rem",
-        backgroundColor: "#007BFF", // nice blue button
+        backgroundColor: "#007BFF",
         color: "white",
         border: "none",
         borderRadius: "4px",
@@ -18,7 +18,7 @@ export default function TryAgainButton({ onClick }) {
       onMouseEnter={(e) => (e.target.style.backgroundColor = "#0056b3")}
       onMouseLeave={(e) => (e.target.style.backgroundColor = "#007BFF")}
     >
-      Try Again
+      Go Again!
     </button>
   );
 }

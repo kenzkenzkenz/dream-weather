@@ -18,7 +18,7 @@ export default function Form({ onSubmit }) {
             setDisableSubmit(true);
             return;
         }
-    
+
         if (precip === 'snow' && temp === 'hot') {
             setWarning("The weather doesn't work like that! Try something else.");
             setDisableSubmit(true);
@@ -27,7 +27,7 @@ export default function Form({ onSubmit }) {
 
         setWarning("");
         setDisableSubmit(false);
-        
+
     }, [precip, temp]);
 
     const handleSubmit = (e) => {

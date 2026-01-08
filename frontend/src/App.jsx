@@ -1,24 +1,50 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import './App.css'
 import Match from './Match';
 import Form from './Form';
 import Loader from './Loader';
 import TryAgainButton from './TryAgainButton';
+import { PuffLoader } from "react-spinners";
 
 function App() {
   const [match, setMatch] = useState(null);
   const [status, setStatus] = useState('idle'); // 'idle' | 'loading' | 'error' | 'success' | 'no-data' | 'rate-limit'
+  const [isServerAwake, setIsServerAwake] = useState();
 
   const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8080';
+  const headers = {
+    'Content-Type': 'application/json',
+  };
+
+  useEffect(() => {
+    wakeUp();
+  }, []);
+
+  const wakeUp = async () => {
+    try {
+      const res = await fetch(`${backendUrl}/api/v1/wakeup`, {
+        method: 'GET',
+        headers: headers,
+      });
+
+      if (!res.ok) {
+        setIsServerAwake(false);
+        setStatus('error');
+      } else {
+        setIsServerAwake(true);
+      }
+    } catch (error) {
+      setIsServerAwake(false);
+      setStatus('error');
+    }
+  }
 
   const handleSubmit = async (formData) => {
     setStatus('loading');
     try {
       const response = await fetch(`${backendUrl}/api/v1/livestream/match`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: headers,
         body: JSON.stringify(formData)
       });
 
@@ -50,11 +76,17 @@ function App() {
 
   return (
     <div>
+      {!isServerAwake && status === 'idle' &&
+        <div className="server-loader-container">
+          <PuffLoader size={10} color={'#3498db'}/>
+          <p className="pulse-text">Waking up server...</p>
+        </div>
+      }
       {status === 'idle' && <Form onSubmit={handleSubmit} />}
-      {status === 'loading' && <Loader duration={8000} />}
+      {status === 'loading' && <Loader duration={8000} isServerAwake={isServerAwake} />}
       {status === 'error' && (
         <div>
-          <p>There was an error fetching your match. Please try again.</p>
+          <p>There was an error. Please try again.</p>
           <TryAgainButton onClick={() => setStatus('idle')} />
         </div>
       )}
