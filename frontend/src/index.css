@@ -97,8 +97,7 @@ button:focus-visible {
 }
 
 .match-container {
-  max-width: 90vw;
-  max-height: 90vh;
+  max-width: 100%;
   padding: 1rem;
   box-sizing: border-box;
 }
