@@ -96,9 +96,9 @@ button:focus-visible {
   }
 }
 
-
 .match-container {
-  max-width: 100%;
+  max-width: 90vw;
+  max-height: 90vh;
   padding: 1rem;
   box-sizing: border-box;
 }
