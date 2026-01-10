@@ -1,3 +1,14 @@
+<p align="center">
+  <img src="assets/dream-weather-logo-512.png" width="160" alt="Dream Weather logo"/>
+</p>
+
+<h1 align="center">Dream Weather</h1>
+
+<p align="center">
+  Weather & Livestream Matching Web Application
+</p>
+
+
 # Dream Weather
 
 A React + Spring Boot application that gives users a location match based on their preferred weather conditions. Users get a matched location with title, description, temperature, current conditions, and an embedded livestream.
