@@ -18,6 +18,7 @@ a {
   color: #646cff;
   text-decoration: inherit;
 }
+
 a:hover {
   color: #535bf2;
 }
@@ -25,7 +26,8 @@ a:hover {
 body {
   margin: 0;
   display: flex;
-  place-items: center;
+  justify-content: center;
+  align-items: center;
   min-width: 320px;
   min-height: 100vh;
 }
@@ -37,18 +39,21 @@ h1 {
 
 button {
   border-radius: 8px;
-  border: 1px solid transparent;
+  border: 1px solid lightgray;
   padding: 0.6em 1.2em;
   font-size: 1em;
   font-weight: 500;
   font-family: inherit;
-  background-color: #1a1a1a;
+  background-color: #f7fbff;
   cursor: pointer;
-  transition: border-color 0.25s;
+  /* transition: border-color 0.25s; */
 }
+
 button:hover {
   border-color: #646cff;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
 }
+
 button:focus,
 button:focus-visible {
   outline: 4px auto -webkit-focus-ring-color;
@@ -59,64 +64,10 @@ button:focus-visible {
   padding: 2rem;
 }
 
-.loader-message {
-  margin-top: 1rem;
-  font-size: 1.1rem;
-  color: #333;
-}
-
-.server-loader-container {
-  position: fixed;
-  top: 16px;
-  right: 16px;
-  z-index: 1000;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  color: #3498db;
-  width: max-content;
-  padding-right: 10px;
-}
-
-.pulse-text {
-  color: #3498db;
-  animation: pulse 1.5s ease-in-out infinite;
-  font-size: 13px;
-}
-
-@keyframes pulse {
-  0%, 100% {
-    opacity: 0.5;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 1;
-    transform: scale(1.05);
-  }
-}
-
-.match-container {
-  max-width: 100%;
-  padding: 1rem;
-  box-sizing: border-box;
-}
-
-.iframe-container {
-  position: relative;
-  width: 100%;
-  /* 16:9 aspect ratio */
-  padding-bottom: 56.25%; 
-  height: 0;
-}
-
-.iframe-container iframe {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  border: 0;
+footer {
+  font-size: 0.75rem; 
+  text-align: center;
+  margin-top: 2rem;
 }
 
 @media (prefers-color-scheme: light) {
@@ -124,10 +75,8 @@ button:focus-visible {
     color: #213547;
     background-color: #ffffff;
   }
+
   a:hover {
     color: #747bff;
-  }
-  button {
-    background-color: #f9f9f9;
   }
 }

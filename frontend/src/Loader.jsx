@@ -25,13 +25,7 @@ export default function Loader({ duration = 4000, isServerAwake }) {
 
   return (
     <div>
-      <div 
-      style={{ 
-        display: 'flex', 
-        flexDirection: 'column', 
-        alignItems: 'center', 
-        padding: '2rem' 
-      }}>
+      <div className="submit-loader">
         <ClipLoader color="#3498db" size={45} />
         <p className="loader-message">{!isServerAwake ? "Waking up server" : messages[safeIndex]}</p>
       </div>
