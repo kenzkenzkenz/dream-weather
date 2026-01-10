@@ -4,12 +4,14 @@ import Match from './Match';
 import Form from './Form';
 import Loader from './Loader';
 import TryAgainButton from './TryAgainButton';
-import { PuffLoader } from "react-spinners";
+import { PuffLoader, DotLoader } from "react-spinners";
 
 function App() {
   const [match, setMatch] = useState(null);
   const [status, setStatus] = useState('idle'); // 'idle' | 'loading' | 'error' | 'success' | 'no-data' | 'rate-limit'
   const [isServerAwake, setIsServerAwake] = useState(false);
+  const [reportThanks, setReportThanks] = useState("");
+  const [reportLoader, setReportLoader] = useState(false);
   const hasCalledWakeUp = useRef(false);
   const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8080';
   const headers = {
@@ -17,7 +19,7 @@ function App() {
   };
 
   useEffect(() => {
-    if(!hasCalledWakeUp.current) {
+    if (!hasCalledWakeUp.current) {
       wakeUp();
       hasCalledWakeUp.current = true;
     }
@@ -77,11 +79,46 @@ function App() {
     }
   };
 
+  const sendReport = async (data) => {
+    try {
+      const response = await fetch(`${backendUrl}/api/v1/livestream/dead`, {
+        method: 'POST',
+        headers: headers,
+        body: JSON.stringify(data)
+      });
+
+      setReportLoader(false);
+
+      if (!response.ok) {
+        setStatus('error');
+        return;
+      }
+
+      setReportThanks("Thanks for the report!");
+    } catch (error) {
+      setStatus('error');
+    } finally{
+      setReportLoader(false);
+    }
+  };
+
+  const handleReport = (e) => {
+    e.preventDefault();
+    if (reportLoader) return;
+    setReportLoader(true);
+
+    let req = {
+      slug: match?.data?.slug,
+      stream_url: match?.data?.stream_url,
+    };
+    sendReport(req);
+  }
+
   return (
-    <div>
+    <div className='app-container'>
       {!isServerAwake && status === 'idle' &&
         <div className="server-loader-container">
-          <PuffLoader size={10} color={'#3498db'}/>
+          <PuffLoader size={10} color={'#3498db'} />
           <p className="pulse-text">Waking up server...</p>
         </div>
       }
@@ -106,33 +143,71 @@ function App() {
         </div>
       )}
 
-      {status === 'success' && (
-        <div>
-          <Match match={match} />
-          <TryAgainButton
-            onClick={() => {
-              setStatus('idle');
-              setMatch(null);
-            }}
-          />
-        </div>
-      )}
+      {status === 'success' &&
+        (
+          <div>
+            <Match match={match} />
+            <div>
 
-      <footer style={{ fontSize: '0.75rem', textAlign: 'center', marginTop: '2rem' }}>
+              <div>
+                <TryAgainButton
+                  onClick={() => {
+                    setStatus('idle');
+                    setMatch(null);
+                    setReportThanks("");
+                  }} />
+              </div>
+
+              <br /><br />
+
+              {!reportThanks && !reportLoader && (
+                <label style={{ marginRight: "30px", fontSize: "14px" }}>
+                  <span>Livestream unavailable for this location? </span>
+                  <input
+                    type="button"
+                    id="report"
+                    name="report"
+                    value="Report"
+                    disabled={reportLoader}
+                    className="report-button"
+                    onClick={handleReport}
+                  />
+                </label>
+        )}
+                {reportLoader && (
+                  <div className="report-loader-container">
+                    <DotLoader size={10} color={'#3498db'} />
+                    <p>Sending report...</p>
+                  </div>
+                  )}
+                  {reportThanks && !reportLoader && (
+                    <div className='report-class'>
+                    {reportThanks}
+                  </div>
+                  )
+              }
+            </div>
+          </div>
+        )
+      }
+
+      <footer>
         Webcam data provided by{' '}
         <a href="https://openwebcamdb.com" target="_blank" rel="noopener noreferrer">OpenWebcamDB.</a>
         {"  "}
+        <br />
         Weather data provided by{' '}
         <a href="https://www.weather.gov" target="_blank" rel="noopener noreferrer">NOAA / NWS.</a>
         <br />
         App developed by{' '}
         <a href="https://github.com/kenzkenzkenz" target="_blank" rel="noopener noreferrer">Mackenzie Allen.</a>
         {"  "}
+        <br />
         <a href="https://github.com/kenzkenzkenz/dream-weather" target="_blank" rel="noopener noreferrer">
           View source code on GitHub.
         </a>
         <br />
-        <em>(US Edition)</em>
+        Dream Weather <em>(US Edition)</em>
       </footer>
 
     </div>
