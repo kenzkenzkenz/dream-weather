@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/dream-weather-logo-512px.png" width="160" alt="Dream Weather logo"/>
+  <img src="src/assets/dream-weather-logo-512px.png" width="160" alt="Dream Weather logo"/>
 </p>
 
 <h1 align="center">Dream Weather</h1>
@@ -7,7 +7,6 @@
 <p align="center">
   Weather & Livestream Matching Web Application
 </p>
-
 
 # Dream Weather
 
