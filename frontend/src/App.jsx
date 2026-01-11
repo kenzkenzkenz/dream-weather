@@ -81,7 +81,7 @@ function App() {
 
   const sendReport = async (data) => {
     try {
-      const response = await fetch(`${backendUrl}/api/v1/livestream/dead`, {
+      const response = await fetch(`${backendUrl}/api/v1/livestream/report`, {
         method: 'POST',
         headers: headers,
         body: JSON.stringify(data)
@@ -97,7 +97,7 @@ function App() {
       setReportThanks("Thanks for the report!");
     } catch (error) {
       setStatus('error');
-    } finally{
+    } finally {
       setReportLoader(false);
     }
   };
@@ -173,18 +173,18 @@ function App() {
                     onClick={handleReport}
                   />
                 </label>
-        )}
-                {reportLoader && (
-                  <div className="report-loader-container">
-                    <DotLoader size={10} color={'#3498db'} />
-                    <p>Sending report...</p>
-                  </div>
-                  )}
-                  {reportThanks && !reportLoader && (
-                    <div className='report-class'>
-                    {reportThanks}
-                  </div>
-                  )
+              )}
+              {reportLoader && (
+                <div className="report-loader-container">
+                  <DotLoader size={10} color={'#3498db'} />
+                  <p>Sending report...</p>
+                </div>
+              )}
+              {reportThanks && !reportLoader && (
+                <div className='report-class'>
+                  {reportThanks}
+                </div>
+              )
               }
             </div>
           </div>
