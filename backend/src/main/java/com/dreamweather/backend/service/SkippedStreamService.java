@@ -21,25 +21,28 @@ public class SkippedStreamService {
     private final Set<String> wildcardSlugs = new HashSet<>();
 
     public SkippedStreamService(ObjectMapper objectMapper) throws IOException {
-
         // ---------- Load dead streams ----------
-        String deadJson = System.getenv("DEAD_STREAMS_JSON");
+        String deadPath = System.getenv("DEAD_STREAMS_JSON");
         List<Stream> deadStreams;
 
-        if (deadJson != null && !deadJson.isBlank()) {
-            // PROD
-        	deadStreams = objectMapper.readValue(
-            		deadJson, new TypeReference<List<Stream>>() {}
-            );
+        if (deadPath != null && !deadPath.isBlank()) {
+            // PROD: read JSON from secret file path
+            File deadFile = new File(deadPath);
+            if (deadFile.exists()) {
+                deadStreams = objectMapper.readValue(deadFile, new TypeReference<List<Stream>>() {});
+            } else {
+                log.warn("Dead streams file not found at {}", deadPath);
+                deadStreams = List.of();
+            }
         } else {
             // LOCAL
             ClassPathResource resource = new ClassPathResource("deadstreams.json");
             if (resource.exists()) {
-            	deadStreams = objectMapper.readValue(
+                deadStreams = objectMapper.readValue(
                     resource.getInputStream(), new TypeReference<List<Stream>>() {}
                 );
             } else {
-            	deadStreams = List.of();
+                deadStreams = List.of();
             }
         }
 
@@ -47,14 +50,17 @@ public class SkippedStreamService {
         log.info("Loaded {} dead streams", deadSlugs.size());
 
         // ---------- Load wildcard streams ----------
-        String wildcardJson = System.getenv("WILDCARD_STREAMS_JSON");
+        String wildcardPath = System.getenv("WILDCARD_STREAMS_JSON");
         List<Stream> wildcardStreams;
 
-        if (wildcardJson != null && !wildcardJson.isBlank()) {
-            // PROD
-            wildcardStreams = objectMapper.readValue(
-                wildcardJson, new TypeReference<List<Stream>>() {}
-            );
+        if (wildcardPath != null && !wildcardPath.isBlank()) {
+            File wildcardFile = new File(wildcardPath);
+            if (wildcardFile.exists()) {
+                wildcardStreams = objectMapper.readValue(wildcardFile, new TypeReference<List<Stream>>() {});
+            } else {
+                log.warn("Wildcard streams file not found at {}", wildcardPath);
+                wildcardStreams = List.of();
+            }
         } else {
             // LOCAL
             ClassPathResource resource = new ClassPathResource("wildcards.json");
