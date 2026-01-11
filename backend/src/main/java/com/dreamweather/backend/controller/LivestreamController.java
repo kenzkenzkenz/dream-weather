@@ -58,7 +58,7 @@ public class LivestreamController {
 	    log.info("Livestream reported by a user. slug: {}, url: {}", 
 	    		stream.getSlug(), stream.getStream_url());
 	    
-		emailService.sendEmail(contactEmail, "Livestream Reported by User", 
+		emailService.sendEmail("Livestream Reported by User", 
 				"slug: " + stream.getSlug() + "\n" + 
 				"url:" + stream.getStream_url());
 		

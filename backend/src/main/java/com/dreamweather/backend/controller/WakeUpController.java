@@ -31,7 +31,7 @@ public class WakeUpController {
 	public ResponseEntity<String> wakeUp() {
 		log.info("Wake-up call received");
 		String trimmed = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
-		emailService.sendEmail(contactEmail, "Dream Weather server awake", "at " + trimmed);
+		emailService.sendEmail("Dream Weather server awake", "at " + trimmed);
 		
 	    return ResponseEntity.ok("Awake");
 	}

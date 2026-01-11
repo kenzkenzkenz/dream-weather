@@ -36,7 +36,6 @@ public class LivestreamService {
     private final SkippedStreamService skippedStreamService;
     private final EmailService emailService;
     private final String apiKey;
-    private final String contactEmail;
 
     public LivestreamService(
             WeatherService weatherService,
@@ -49,7 +48,6 @@ public class LivestreamService {
         this.skippedStreamService = skippedStreamService;
         this.emailService = emailService;
         this.apiKey = apiKey;
-        this.contactEmail = contactEmail;
     }
 	
 	@SuppressWarnings("unchecked")
@@ -173,7 +171,7 @@ public class LivestreamService {
 	                        prefs.getTemperature()
 	                );
 
-	                emailService.sendEmail(contactEmail, "Dream Weather Requested", emailBody);
+	                emailService.sendEmail("Dream Weather Requested", emailBody);
 
 	                return convertWebcamToDto(cam, prefs.getCountry(), stream);
 	            } else {
@@ -198,7 +196,7 @@ public class LivestreamService {
                 prefs.getTemperature()
         );
 
-        emailService.sendEmail(contactEmail, "Dream Weather Requested", emailBody);
+        emailService.sendEmail("Dream Weather Requested", emailBody);
 
 	    return null;
 	}
