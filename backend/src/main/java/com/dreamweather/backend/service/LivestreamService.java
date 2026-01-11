@@ -1,5 +1,6 @@
 package com.dreamweather.backend.service;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -8,7 +9,6 @@ import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpEntity;
@@ -29,23 +29,37 @@ import com.dreamweather.backend.model.Webcam;
 
 @Service
 public class LivestreamService {
-	
-    private static final Logger log = LoggerFactory.getLogger(WeatherService.class);
-	
-	@Autowired
-	private WeatherService weatherService;
-	
-	@Value("${openwebcamdb.api.key}")
-	private String apiKey;
+
+    private static final Logger log = LoggerFactory.getLogger(LivestreamService.class);
+
+    private final WeatherService weatherService;
+    private final SkippedStreamService skippedStreamService;
+    private final EmailService emailService;
+    private final String apiKey;
+    private final String contactEmail;
+
+    public LivestreamService(
+            WeatherService weatherService,
+            SkippedStreamService skippedStreamService,
+            EmailService emailService,
+            @Value("${openwebcamdb.api.key}") 
+            String apiKey,
+            @Value("${contact.email}") String contactEmail) {
+        this.weatherService = weatherService;
+        this.skippedStreamService = skippedStreamService;
+        this.emailService = emailService;
+        this.apiKey = apiKey;
+        this.contactEmail = contactEmail;
+    }
 	
 	@SuppressWarnings("unchecked")
 	public LiveStreamDto findLivestreamDataByCountry(UserPrefs prefs) {
-	    log.info("Fetching data for country: " + prefs.getCountry().getName() + 
-	            " with " + prefs.getPrecipitation() + " and " + prefs.getTemperature());
+	    log.info("Fetching data for country: {} ", prefs.getCountry().getName());
 
 	    int totalPages = 5;       // Approx. number of pages for US webcams
 	    int perPage = 100;        // Max results per page
-	    int subsetSize = 30;      // How many webcams to consider
+	    int subsetSize = 20;      // How many webcams to consider
+	    int weatherCalls = 0;
 
 	    // Pick a random page
 	    int randomPage = new Random().nextInt(totalPages) + 1;
@@ -79,23 +93,43 @@ public class LivestreamService {
 	            : Collections.emptyList();
 
 	    if (webcamsFromResponse.isEmpty()) {
-	        log.info("No webcams found for country: " + prefs.getCountry().getName());
+	        log.info("No webcams found for {}", prefs.getCountry().getName());
 	        return null;
 	    }
+	    
+	    List<String> skippedSlugs = new ArrayList<>();
 
 	    // Convert to Webcam objects
-	    List<Webcam> webcams = webcamsFromResponse.stream().map(data -> {
-	        Webcam w = new Webcam();
-	        w.setSlug((String) data.get("slug"));
-	        w.setTitle((String) data.get("title"));
-	        w.setDescription((String) data.get("description"));
-	        w.setCity((String) data.get("city"));
-	        w.setLatitude((String) data.get("latitude"));
-	        w.setLongitude((String) data.get("longitude"));
-	        w.setPermalink((String) data.get("permalink"));
-	        w.setStreamType((String) data.get("stream_type"));
-	        return w;
-	    }).collect(Collectors.toList());
+	    List<Webcam> webcams = webcamsFromResponse.stream()
+		    .filter(data -> {
+		        String slug = (String) data.get("slug");
+		        String reason = skippedStreamService.getSkipReason(slug); 
+
+		        if (reason != null) {
+		            skippedSlugs.add(slug);
+		            //log.info("Skipped slug {} due to {}", slug, reason);
+		            return false; // filter out
+		        }
+
+		        return true; // keep
+		    })
+		    .map(data -> {
+		        Webcam w = new Webcam();
+		        w.setSlug((String) data.get("slug"));
+		        w.setTitle((String) data.get("title"));
+		        w.setDescription((String) data.get("description"));
+		        w.setCity((String) data.get("city"));
+		        w.setLatitude((String) data.get("latitude"));
+		        w.setLongitude((String) data.get("longitude"));
+		        w.setPermalink((String) data.get("permalink"));
+		        w.setStreamType((String) data.get("stream_type"));
+		        return w;
+		    }).collect(Collectors.toList());
+	    
+    	// Log the skipped slugs
+	    if (!skippedSlugs.isEmpty()) {
+	        log.info("Skipped webcams: {}", String.join(", ", skippedSlugs));
+	    }
 
 	    // Shuffle and pick a subset
 	    Collections.shuffle(webcams);
@@ -112,28 +146,60 @@ public class LivestreamService {
 	        }
 
 	        GridData grid = weatherService.findGridDataByCoordinates(lat, lon);
+	        weatherCalls++;
 
 	        if (grid != null) {
 	            Forecast forecast = weatherService.findForecastByGridData(
 	                    grid.getGridId(), grid.getGridX(), grid.getGridY());
+	            weatherCalls++;
 
 	            if (weatherService.findWeatherMatch(forecast, prefs)) {
-	                log.info("Found matching weather: " + cam.getTitle());
-	                cam.setForecast(forecast);
+	            	
+	            	log.info("Made {} weather calls for precip {} and temp {}. Found matching weather at {}",
+	            	        weatherCalls, prefs.getPrecipitation(), prefs.getTemperature(), cam.getTitle());
+
+	            	cam.setForecast(forecast);
 	                
-	                //call openwebcamdb to get stream url
 	                String stream = fetchWebcamStreamUrl(cam.getSlug());
 	                
+	                String emailBody = String.format(
+	                        "Dream Weather Request Summary:%n" +
+	                        "--------MATCH FOUND -------%n" +
+	                        "Weather calls made: %d%n" +
+	                        "Precipitation preference: %s%n" +
+	                        "Temperature preference: %s%n",
+	                        weatherCalls,
+	                        prefs.getPrecipitation(),
+	                        prefs.getTemperature()
+	                );
+
+	                emailService.sendEmail(contactEmail, "Dream Weather Requested", emailBody);
+
 	                return convertWebcamToDto(cam, prefs.getCountry(), stream);
 	            } else {
-	                log.info("No weather match for: " + cam.getTitle());
+	                log.info("No weather match for {}", cam.getTitle());
 	            }
 	        } else {
-	            log.info("No grid data for webcam: " + cam.getTitle());
+	            log.info("No grid data for {}", cam.getTitle());
 	        }
 	    }
 
-	    log.info("No matching webcams found for country: " + prefs.getCountry().getName());
+	    log.info("Made {} weather calls for precip {} and temp {}. Found no matching locations.",
+	            weatherCalls, prefs.getPrecipitation(), prefs.getTemperature());
+	    
+        String emailBody = String.format(
+                "Dream Weather Request Summary:%n" +
+                "-------MATCH NOT FOUND--------%n" +
+                "Weather calls made: %d%n" +
+                "Precipitation preference: %s%n" +
+                "Temperature preference: %s%n",
+                weatherCalls,
+                prefs.getPrecipitation(),
+                prefs.getTemperature()
+        );
+
+        emailService.sendEmail(contactEmail, "Dream Weather Requested", emailBody);
+
 	    return null;
 	}
 	
