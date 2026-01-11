@@ -51,3 +51,8 @@ Desktop.ini
 *.swp
 config/*
 !config/.gitkeep
+.classpath
+.project
+.settings/
+backend/.factorypath
+target/
