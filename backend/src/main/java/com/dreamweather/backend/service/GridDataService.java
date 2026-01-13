@@ -5,6 +5,7 @@ import com.dreamweather.backend.persistence.GridDataEntity;
 import com.dreamweather.backend.persistence.GridDataRepository;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.cache.annotation.Cacheable;
 
 import java.util.Optional;
@@ -18,7 +19,7 @@ public class GridDataService {
         this.gridDataRepository = gridDataRepository;
     }
 	
-    @Cacheable(value = "gridDataCache", key = "#latitude + '-' + #longitude")
+    @Transactional
     public GridDataEntity getOrCreateGridData(
             double latitude,
             double longitude,
