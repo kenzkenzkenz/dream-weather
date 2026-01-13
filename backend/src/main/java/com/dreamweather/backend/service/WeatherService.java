@@ -3,11 +3,9 @@ package com.dreamweather.backend.service;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -15,6 +13,7 @@ import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
+import com.dreamweather.backend.http.WeatherGovAuthProvider;
 import com.dreamweather.backend.model.Forecast;
 import com.dreamweather.backend.model.GridData;
 import com.dreamweather.backend.model.UserPrefs;
@@ -29,25 +28,44 @@ public class WeatherService {
 	private static final int HOT_THRESHOLD = 67; // Fahrenheit
 	
     private static final Logger log = LoggerFactory.getLogger(WeatherService.class);
-	
-	@Value("${application.name}")
-	private String appName;
-	
-    @Value("${contact.email}")
-    private String contactEmail;
-	
+    
+    private final RestTemplate restTemplate;
+    private final WeatherGovAuthProvider authProvider;
+    private final AtomicInteger totalWeatherCalls = new AtomicInteger(0);
+    private final ThreadLocal<Integer> requestWeatherCalls = ThreadLocal.withInitial(() -> 0);
+    
+    public WeatherService(
+    		RestTemplate restTemplate,
+    		WeatherGovAuthProvider authProvider) {
+			this.restTemplate = restTemplate;
+			this.authProvider = authProvider;
+		}
+    
+    public int getAndResetRequestCount() {
+        int count = requestWeatherCalls.get();
+        requestWeatherCalls.remove();
+        return count;
+    }
+
+    private void incrementCall() {
+        totalWeatherCalls.incrementAndGet();
+        requestWeatherCalls.set(requestWeatherCalls.get() + 1);
+    }
+
 	public GridData findGridDataByCoordinates(String lat, String lon) {
 		String url = "https://api.weather.gov/points/" + lat + "," + lon;
 		
-		RestTemplate restTemplate = new RestTemplate();
-		HttpHeaders headers = new HttpHeaders();
-		headers.set("User-Agent", appName + " (" + contactEmail + ")");
-		headers.set("Accept", "application/geo+json");
-		HttpEntity<String> entity = new HttpEntity<>(headers);
-		
 		try {
 			log.info("Requesting grid data for coordinates: {}/{}", lat, lon);
-			ResponseEntity<Object> response = restTemplate.exchange(url, HttpMethod.GET, entity, Object.class);
+			
+            ResponseEntity<Map<String, Object>> response =
+                    restTemplate.exchange(
+                        url,
+                        HttpMethod.GET,
+                        authProvider.entity(),
+                        new ParameterizedTypeReference<>() {}
+                    );
+            incrementCall();
 			
 			if (!response.getStatusCode().is2xxSuccessful()) {
 			    log.error("Non-success HTTP status {} for lat={}, lon={}", 
@@ -55,8 +73,7 @@ public class WeatherService {
 			    return null;
 			}
 		
-			@SuppressWarnings("unchecked")
-			Map<String, Object> body = (Map<String, Object>) response.getBody();
+			Map<String, Object> body = response.getBody();
 	
 			if (body != null && body.get("properties") != null) {
 			    @SuppressWarnings("unchecked")
@@ -87,16 +104,18 @@ public class WeatherService {
 	public Forecast findForecastByGridData(String gridId, String gridX, String gridY) {
 	    String url = "https://api.weather.gov/gridpoints/" + gridId + "/" + gridX + "," + gridY + "/forecast";
 	    
-	    RestTemplate restTemplate = new RestTemplate();
-	    HttpHeaders headers = new HttpHeaders();
-	    headers.set("User-Agent", appName + " (" + contactEmail + ")");
-	    headers.set("Accept", "application/geo+json");
-	    HttpEntity<String> entity = new HttpEntity<>(headers);
-	    
 	    try {
 			log.info("Requesting forecast for grid {}/{}", gridId, gridX + "," + gridY);
-	        ResponseEntity<Map<String, Object>> response = restTemplate.exchange(url, HttpMethod.GET, entity,
-	        	        new ParameterizedTypeReference<Map<String, Object>>() {});
+			
+			
+            ResponseEntity<Map<String, Object>> response =
+                    restTemplate.exchange(
+                        url,
+                        HttpMethod.GET,
+                        authProvider.entity(),
+                        new ParameterizedTypeReference<>() {}
+                    );
+            incrementCall();
 	        
 	        Map<String, Object> body = response.getBody();
 	        if (body == null) {
@@ -139,7 +158,7 @@ public class WeatherService {
 	}
 
 	
-	public boolean findWeatherMatch(Forecast forecast, UserPrefs prefs) {
+	public boolean isWeatherMatch(Forecast forecast, UserPrefs prefs) {
 	    if (forecast == null || prefs == null || forecast.getShortForecast() == null || prefs.getPrecipitation() == null) {
 	        return false;
 	    }

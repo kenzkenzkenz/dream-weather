@@ -1,5 +1,7 @@
 package com.dreamweather.backend.dto;
 
+import com.dreamweather.backend.model.Country;
+
 import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 
@@ -7,7 +9,7 @@ import lombok.Data;
 public class UserPrefsDto {
 	
 	@NotBlank
-	private String region;
+	private Country country;
 	
 	@NotBlank
 	private String precipitation;
