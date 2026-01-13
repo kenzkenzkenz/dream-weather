@@ -47,10 +47,12 @@ public class LocationController {
 
         LocationDto webcam = livestreamService.findLocationDataByCountry(prefs);
 
-        int callsThisRequest = weatherService.getAndResetRequestCount();
+        int weatherCallsThisRequest = weatherService.getAndResetRequestCount();
+        int locationsChecked = livestreamService.getAndResetLocationCount();
 
         log.info("========== FINAL RESULT ==========");
-        log.info("[FINAL_MATCH] Weather.gov API calls: {}", callsThisRequest);
+        log.info("[FINAL_MATCH] Total locations checked: {}", locationsChecked);
+        log.info("[FINAL_MATCH] Weather.gov API calls: {}", weatherCallsThisRequest);
         log.info("[FINAL_MATCH] User Country: {}, precip: {}, temp: {}",
                 prefs.getCountry().getName(),
                 prefs.getPrecipitation(),
@@ -66,7 +68,6 @@ public class LocationController {
         return ResponseEntity.ok(new LocationResponse(true, "Match found", webcam));
     }
 
-	
 	@PostMapping("/livestream/report")
 	public ResponseEntity<String> sendLivestreamReport(@Valid @RequestBody Stream stream) {
 	    log.info("[REPORTED] Livestream reported by a user. slug: {}, url: {}", 

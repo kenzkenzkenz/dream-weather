@@ -11,6 +11,8 @@ import org.springframework.cache.annotation.Cacheable;
 import java.util.Optional;
 import java.util.function.Supplier;
 
+import javax.sql.DataSource;
+
 @Service
 public class GridDataService {
     private final GridDataRepository gridDataRepository;
@@ -18,19 +20,18 @@ public class GridDataService {
     public GridDataService(GridDataRepository gridDataRepository) {
         this.gridDataRepository = gridDataRepository;
     }
-	
+
+    public GridDataEntity getGridData(double latitude, double longitude) {
+        return gridDataRepository
+                .findByLatitudeAndLongitude(latitude, longitude)
+                .orElse(null);
+    }
+
     @Transactional
-    public GridDataEntity getOrCreateGridData(
+    public GridDataEntity fetchAndPersistGridData(
             double latitude,
             double longitude,
             Supplier<GridData> apiSupplier) {
-
-        Optional<GridDataEntity> existing =
-            gridDataRepository.findByLatitudeAndLongitude(latitude, longitude);
-
-        if (existing.isPresent()) {
-            return existing.get();
-        }
 
         GridData apiGrid = apiSupplier.get();
         if (apiGrid == null) {
@@ -38,13 +39,14 @@ public class GridDataService {
         }
 
         GridDataEntity entity = new GridDataEntity(
-            latitude,
-            longitude,
-            apiGrid.getGridId(),
-            apiGrid.getGridX(),
-            apiGrid.getGridY()
+                latitude,
+                longitude,
+                apiGrid.getGridId(),
+                apiGrid.getGridX(),
+                apiGrid.getGridY()
         );
 
-        return gridDataRepository.save(entity);
+        return gridDataRepository.saveAndFlush(entity);
     }
 }
+

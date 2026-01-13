@@ -15,7 +15,6 @@ import com.dreamweather.backend.model.UserPrefs;
 import com.dreamweather.backend.persistence.GridDataEntity;
 
 import java.util.List;
-import java.util.concurrent.Callable;
 import java.util.function.Supplier;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -30,9 +29,6 @@ class LocationServiceTest {
 
     @MockBean
     private WeatherService weatherService;
-
-    @MockBean
-    private SkippedStreamService skippedStreamService;
 
     @MockBean
     private WebcamService webcamService;
@@ -51,7 +47,6 @@ class LocationServiceTest {
         prefs.setCountry(country);
         prefs.setTemperature("cold");
         prefs.setPrecipitation("none");
-        String countryCode = country.getIso_code();
 
         // --- Mock forecast ---
         Forecast mockForecast = new Forecast();
@@ -68,7 +63,7 @@ class LocationServiceTest {
         mockWebcam.setCountry(country);
 
         List<Location> webcams = List.of(mockWebcam);
-        when(webcamService.fetchWebcams(countryCode)).thenReturn(webcams);
+        when(webcamService.fetchWebcams(country.getIso_code())).thenReturn(webcams);
 
         // --- Mock weather service ---
         when(weatherService.findGridDataByCoordinates(anyString(), anyString()))
@@ -78,7 +73,12 @@ class LocationServiceTest {
         when(weatherService.isWeatherMatch(any(), any())).thenReturn(true);
 
         // --- Mock GridDataService to execute the lambda ---
-        when(gridDataService.getOrCreateGridData(
+        when(gridDataService.getGridData(
+                anyDouble(),
+                anyDouble()
+        )).thenReturn(null); // Return null initially to trigger fetching and persisting new grid data
+
+        when(gridDataService.fetchAndPersistGridData(
                 anyDouble(),
                 anyDouble(),
                 any(Supplier.class)
@@ -87,7 +87,7 @@ class LocationServiceTest {
             double lon = invocation.getArgument(1);
             Supplier<GridData> supplier = invocation.getArgument(2);
 
-            GridData gd = supplier.get(); // <-- use get(), not call()
+            GridData gd = supplier.get(); // <-- use get() to execute the lambda
             return new GridDataEntity(lat, lon, gd.getGridId(), gd.getGridX(), gd.getGridY());
         });
 
@@ -96,6 +96,8 @@ class LocationServiceTest {
 
         // --- Verify ---
         verify(weatherService, atLeastOnce()).findGridDataByCoordinates(anyString(), anyString());
+        verify(weatherService, atLeastOnce()).findForecastByGridData(anyString(), anyString(), anyString());
+        verify(gridDataService, atLeastOnce()).fetchAndPersistGridData(anyDouble(), anyDouble(), any(Supplier.class));
 
         // --- Assertions ---
         assertNotNull(dto, "Should return a LocationDto");
@@ -105,4 +107,5 @@ class LocationServiceTest {
         assertNotNull(dto.getForecast(), "Forecast should be set in DTO");
         assertEquals(50, dto.getForecast().getTemperature());
     }
+
 }

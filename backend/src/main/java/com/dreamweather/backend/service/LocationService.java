@@ -18,6 +18,8 @@ import com.dreamweather.backend.persistence.GridDataEntity;
 public class LocationService {
 
     private static final Logger log = LoggerFactory.getLogger(LocationService.class);
+    private final AtomicInteger totalLocationsChecked = new AtomicInteger(0);
+    private final ThreadLocal<Integer> requestLocationMatch = ThreadLocal.withInitial(() -> 0);
 
     private final WeatherService weatherService;
     private final GridDataService gridDataService;
@@ -31,6 +33,17 @@ public class LocationService {
         this.weatherService = weatherService;
         this.gridDataService = gridDataService;
         this.webcamService = webcamService;
+    }
+    
+    public int getAndResetLocationCount() {
+        int count = requestLocationMatch.get();
+        requestLocationMatch.remove();
+        return count;
+    }
+
+    private void incrementCall() {
+    	totalLocationsChecked.incrementAndGet();
+    	requestLocationMatch.set(requestLocationMatch.get() + 1);
     }
     
 	public LocationDto findLocationDataByCountry(UserPrefs prefs) {
@@ -56,26 +69,34 @@ public class LocationService {
 	            continue;
 	        }
 
-        	GridDataEntity gridEntity = gridDataService.getOrCreateGridData(
-        		    latVal,
-        		    lonVal,
-        		    () -> {
-        		        return weatherService.findGridDataByCoordinates(lat, lon);
-        		    }
-        		);
+	        // Try to get grids from DB first
+	        GridDataEntity gridEntity = gridDataService.getGridData(latVal, lonVal);
 
-        		if (gridEntity== null ||
-        			gridEntity.getGridId() == null ||
-        		    gridEntity.getGridX() == null ||
-        		    gridEntity.getGridY() == null) {
-        		    log.warn("Invalid grid data for {}", loc.getSlug());
-        		    continue;
-        		} 
+	        // If not found, fetch from weather API and persist
+	        if (gridEntity == null) {
+	            gridEntity = gridDataService.fetchAndPersistGridData(
+	                latVal,
+	                lonVal,
+	                () -> weatherService.findGridDataByCoordinates(lat, lon)
+	            );
+	        }
+
+	        // Validate the result
+	        if (gridEntity == null ||
+	            gridEntity.getGridId() == null ||
+	            gridEntity.getGridX() == null ||
+	            gridEntity.getGridY() == null) {
+	            log.warn("Invalid grid data for {}", loc.getSlug());
+	            continue;
+	        }
+
         		try {
 		        Forecast forecast = weatherService.findForecastByGridData(
 		        	    gridEntity.getGridId(),
 		        	    gridEntity.getGridX(),
 		        	    gridEntity.getGridY());
+
+		        	incrementCall();
 		            
 		            if (weatherService.isWeatherMatch(forecast, prefs)) {
 		            	
