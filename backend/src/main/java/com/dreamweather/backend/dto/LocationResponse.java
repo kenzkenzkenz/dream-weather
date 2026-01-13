@@ -1,13 +1,13 @@
 package com.dreamweather.backend.dto;
 
-public class LivestreamResponse {
+public class LocationResponse {
     private boolean success;
     private String message;
-    private LiveStreamDto data;
+    private LocationDto data;
 
-    public LivestreamResponse() {}
+    public LocationResponse() {}
 
-    public LivestreamResponse(boolean success, String message, LiveStreamDto data) {
+    public LocationResponse(boolean success, String message, LocationDto data) {
         this.success = success;
         this.message = message;
         this.data = data;
@@ -20,6 +20,6 @@ public class LivestreamResponse {
     public String getMessage() { return message; }
     public void setMessage(String message) { this.message = message; }
 
-    public LiveStreamDto getData() { return data; }
-    public void setData(LiveStreamDto data) { this.data = data; }
+    public LocationDto getData() { return data; }
+    public void setData(LocationDto data) { this.data = data; }
 }

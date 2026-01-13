@@ -3,7 +3,7 @@ package com.dreamweather.backend.model;
 import lombok.Data;
 
 @Data
-public class Webcam {
+public class Location {
 	
 	private String slug;
 	private String title;

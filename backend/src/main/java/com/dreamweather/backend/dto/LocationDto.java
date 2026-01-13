@@ -6,7 +6,7 @@ import com.dreamweather.backend.model.Forecast;
 import lombok.Data;
 
 @Data
-public class LiveStreamDto {
+public class LocationDto {
 	private String slug;
 	private String title;
 	private String description;

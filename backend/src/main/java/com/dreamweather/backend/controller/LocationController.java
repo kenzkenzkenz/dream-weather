@@ -1,6 +1,5 @@
 package com.dreamweather.backend.controller;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
@@ -9,12 +8,14 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.dreamweather.backend.dto.LiveStreamDto;
-import com.dreamweather.backend.dto.LivestreamResponse;
+import com.dreamweather.backend.dto.LocationDto;
+import com.dreamweather.backend.dto.LocationResponse;
 import com.dreamweather.backend.model.Stream;
 import com.dreamweather.backend.model.UserPrefs;
 import com.dreamweather.backend.service.EmailService;
-import com.dreamweather.backend.service.LivestreamService;
+import com.dreamweather.backend.service.LocationService;
+import com.dreamweather.backend.service.WeatherService;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,44 +24,56 @@ import jakarta.validation.Valid;
 @RestController
 @RequestMapping("/api/v1")
 @CrossOrigin(origins = "${frontend.url}")
-public class LivestreamController {
-    private static final Logger log = LoggerFactory.getLogger(LivestreamController.class);
+public class LocationController {
+    private static final Logger log = LoggerFactory.getLogger(LocationController.class);
 	
-	private LivestreamService livestreamService;
+	private LocationService livestreamService;
 	private EmailService emailService;
-	private String contactEmail;
+	private WeatherService weatherService;
 	
-    public LivestreamController(
-            LivestreamService livestreamService,
+    public LocationController(
+            LocationService livestreamService,
             EmailService emailService,
-            @Value("${contact.email}") String contactEmail
+            WeatherService weatherService
     ) {
         this.livestreamService = livestreamService;
         this.emailService = emailService;
-        this.contactEmail = contactEmail;
+        this.weatherService = weatherService;
     }
 	
     @PostMapping("/livestream/match")
-    public ResponseEntity<LivestreamResponse> getLivestreamMatch(@Valid @RequestBody UserPrefs prefs) {
-        LiveStreamDto webcam = livestreamService.findLivestreamDataByCountry(prefs);
+    public ResponseEntity<LocationResponse> getLivestreamMatch(
+            @Valid @RequestBody UserPrefs prefs) {
 
-        // Return response
-        if (webcam != null) {
-            return ResponseEntity.ok(new LivestreamResponse(true, "Match found", webcam));
-        } else {
+        LocationDto webcam = livestreamService.findLocationDataByCountry(prefs);
+
+        int callsThisRequest = weatherService.getAndResetRequestCount();
+
+        log.info("========== FINAL RESULT ==========");
+        log.info("[FINAL_MATCH] Weather.gov API calls: {}", callsThisRequest);
+        log.info("[FINAL_MATCH] User Country: {}, precip: {}, temp: {}",
+                prefs.getCountry().getName(),
+                prefs.getPrecipitation(),
+                prefs.getTemperature());
+
+        if (webcam == null) {
+            log.info("[FINAL_MATCH] No matching webcam found");
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                                 .body(new LivestreamResponse(false, "No matches found", null));
+                    .body(new LocationResponse(false, "No matches found", null));
         }
+
+        log.info("[FINAL_MATCH] Matching webcam found: {}", webcam.getSlug());
+        return ResponseEntity.ok(new LocationResponse(true, "Match found", webcam));
     }
+
 	
 	@PostMapping("/livestream/report")
 	public ResponseEntity<String> sendLivestreamReport(@Valid @RequestBody Stream stream) {
-	    log.info("Livestream reported by a user. slug: {}, url: {}", 
+	    log.info("[REPORTED] Livestream reported by a user. slug: {}, url: {}", 
 	    		stream.getSlug(), stream.getStream_url());
 	    
 		emailService.sendEmail("Livestream Reported by User", 
-				"slug: " + stream.getSlug() + "\n" + 
-				"url:" + stream.getStream_url());
+				"slug: " + stream.getSlug());
 		
 		return ResponseEntity.ok("Reported");
 	}
