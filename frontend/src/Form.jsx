@@ -106,7 +106,7 @@ export default function Form({ onSubmit }) {
                             name="temp"
                             value="cold"
                             onChange={(e) => setTemp(e.target.value)} />
-                        <label htmlFor="cold">Cold</label>
+                        <label htmlFor="cold">Cool/Cold</label>
                     </label>
 
                     <label style={{ marginRight: "20px" }}>
@@ -116,7 +116,7 @@ export default function Form({ onSubmit }) {
                             name="temp"
                             value="hot"
                             onChange={(e) => setTemp(e.target.value)} />
-                        <label htmlFor="hot">Hot</label>
+                        <label htmlFor="hot">Warm/Hot</label>
                     </label>
                 </div>
 

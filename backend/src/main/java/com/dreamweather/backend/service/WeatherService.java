@@ -26,7 +26,7 @@ public class WeatherService {
 	private static final String[] RAIN = {"rain"};
 	private static final String[] RAIN_WORDS = {"rain", "showers", "shower", "drizzle", "thunderstorm", "thunder", "storms"};
 	private static final String[] SNOW_WORDS = {"snow", "sleet", "blizzard", "flurries"};
-	private static final int HOT_THRESHOLD = 67; // Fahrenheit
+	private static final int HOT_THRESHOLD = 65; // Fahrenheit
 	
     private static final Logger log = LoggerFactory.getLogger(WeatherService.class);
     
