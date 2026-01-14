@@ -162,7 +162,7 @@ function App() {
 
               {!reportThanks && !reportLoader && (
                 <label style={{ marginRight: "30px", fontSize: "14px" }}>
-                  <span>Livestream unavailable for this location? </span>
+                  <span>Livestream unavailable? </span>
                   <input
                     type="button"
                     id="report"
