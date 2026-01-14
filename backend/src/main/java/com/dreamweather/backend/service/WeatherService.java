@@ -23,6 +23,7 @@ import org.slf4j.LoggerFactory;
 @Service
 public class WeatherService {
 	
+	private static final String[] RAIN = {"rain"};
 	private static final String[] RAIN_WORDS = {"rain", "showers", "shower", "drizzle", "thunderstorm", "thunder", "storms"};
 	private static final String[] SNOW_WORDS = {"snow", "sleet", "blizzard", "flurries"};
 	private static final int HOT_THRESHOLD = 67; // Fahrenheit
@@ -55,6 +56,8 @@ public class WeatherService {
 	public GridData findGridDataByCoordinates(String lat, String lon) {
 		String url = "https://api.weather.gov/points/" + lat + "," + lon;
 		
+		Long start = System.nanoTime();
+		
 		try {
 			log.info("Requesting grid data for coordinates: {}/{}", lat, lon);
 			
@@ -66,9 +69,12 @@ public class WeatherService {
                         new ParameterizedTypeReference<>() {}
                     );
             incrementCall();
+            
+            long durationMs = (System.nanoTime() - start) / 1_000_000;
+            log.info("~~~Weather.gov grid call took {} ms~~~", durationMs);
 			
 			if (!response.getStatusCode().is2xxSuccessful()) {
-			    log.error("Non-success HTTP status {} for lat={}, lon={}", 
+			    log.error("~~~Non-success HTTP status {} for lat={}, lon={}~~~", 
 			            response.getStatusCode(), lat, lon);
 			    return null;
 			}
@@ -91,18 +97,26 @@ public class WeatherService {
 			return null;
 
 		} catch (HttpStatusCodeException e) {
-		    log.error("Weather.gov HTTP error {} for lat={}, lon={}: {}", 
-		            e.getStatusCode(), lat, lon, e.getResponseBodyAsString());
+	        long durationMs = (System.nanoTime() - start) / 1_000_000;
+	        log.error(
+	            "~~~Weather.gov HTTP error {} after {} ms for lat={}, lon={}: {}~~~",
+	            e.getStatusCode(), durationMs, lat, lon, e.getResponseBodyAsString()
+	        );
 		        return null;
 		    } catch (RestClientException e) {
-		        log.error("Weather.gov request failed for lat={}, lon={}: {}", 
-		                lat, lon, e.getMessage());
+		        long durationMs = (System.nanoTime() - start) / 1_000_000;
+		        log.error(
+		            "~~~Weather.gov request failed after {} ms for lat={}, lon={}: {}~~~",
+		            durationMs, lat, lon, e.getMessage()
+		        );
 		        return null;
 		    }
 	}
 	
 	public Forecast findForecastByGridData(String gridId, String gridX, String gridY) {
 	    String url = "https://api.weather.gov/gridpoints/" + gridId + "/" + gridX + "," + gridY + "/forecast";
+	    
+		Long start = System.nanoTime();
 	    
 	    try {
 			log.info("Requesting forecast for grid {}/{}", gridId, gridX + "," + gridY);
@@ -116,6 +130,9 @@ public class WeatherService {
                         new ParameterizedTypeReference<>() {}
                     );
             incrementCall();
+            
+            long durationMs = (System.nanoTime() - start) / 1_000_000;
+            log.info("~~~~Weather.gov forecast call took {} ms~~~", durationMs);
 	        
 	        Map<String, Object> body = response.getBody();
 	        if (body == null) {
@@ -147,11 +164,14 @@ public class WeatherService {
 	        return forecast;
 
 	    } catch (HttpStatusCodeException e) {
-	        log.error("Weather.gov HTTP error {} for grid {}/{}: {}", 
-	                e.getStatusCode(), gridId, gridX + "," + gridY, e.getResponseBodyAsString());
+	    	long durationMs = (System.nanoTime() - start) / 1_000_000;
+	        log.error("~~~Weather.gov HTTP error {} failed after {} ms for grid {}/{}: {}~~~", 
+	        		e.getStatusCode(), durationMs, gridId, gridX + "," + gridY, e.getResponseBodyAsString());
+	        
 	    } catch (RestClientException e) {
-	        log.error("Weather.gov request failed for grid {}/{}: {}", 
-	                gridId, gridX + "," + gridY, e.getMessage());
+	    	long durationMs = (System.nanoTime() - start) / 1_000_000;
+	        log.error("~~~Weather.gov request failed after {} ms for grid {}/{}: {}~~~", 
+	                durationMs, gridId, gridX + "," + gridY, e.getMessage());
 	    }
 	    
 	    return null;
@@ -184,11 +204,12 @@ public class WeatherService {
 	private boolean isPrecipitationMatch(String forecast, String precipPref) {
 	    forecast = forecast.toLowerCase();
 
+	    boolean containsRainOnly = Arrays.stream(RAIN).anyMatch(forecast::contains);
 	    boolean containsRain = Arrays.stream(RAIN_WORDS).anyMatch(forecast::contains);
 	    boolean containsSnow = Arrays.stream(SNOW_WORDS).anyMatch(forecast::contains);
 
 	    return (precipPref.equals("rain") && containsRain)
-	        || (precipPref.equals("snow") && containsSnow)
+	        || (precipPref.equals("snow") && containsSnow && !containsRainOnly)
 	        || (precipPref.equals("none") && !containsRain && !containsSnow);
 	}
 }

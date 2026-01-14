@@ -16,6 +16,7 @@ import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
 import com.dreamweather.backend.model.Location;
+import com.dreamweather.backend.model.UserPrefs;
 import com.dreamweather.backend.exception.TooManyRequestsException;
 import com.dreamweather.backend.http.OpenWebcamAuthProvider;
 
@@ -39,10 +40,11 @@ public class WebcamService {
     }
 
     @SuppressWarnings("unchecked")
-    public List<Location> fetchWebcams(String countryCode) {
+    public List<Location> fetchWebcams(UserPrefs prefs) {
 	    int totalPages = 5;       // Approx. number of pages for US webcams
 	    int perPage = 100;        // Max results per page
 	    int subsetSize = 20;      // How many webcams to consider
+	    String countryCode = prefs.getCountry().getIso_code();
 
 	    // Pick a random page
 	    int randomPage = new Random().nextInt(totalPages) + 1;
@@ -110,13 +112,29 @@ public class WebcamService {
             if (!skippedSlugs.isEmpty()) {
             	log.info("Skipped locations: {}", String.join(", ",  skippedSlugs));;
             }
-
+            
+            // Sort by latitude based on temperature/precipitation prefs
+            if ("cold".equalsIgnoreCase(prefs.getTemperature()) || "snow".equalsIgnoreCase(prefs.getPrecipitation())) {
+                locations.sort((a, b) -> Double.compare(parseLat(b.getLatitude()), parseLat(a.getLatitude())));
+            } else if ("hot".equalsIgnoreCase(prefs.getTemperature())) {
+                locations.sort((a, b) -> Double.compare(parseLat(a.getLatitude()), parseLat(b.getLatitude())));
+            }
+            // Limit to top 50 after sorting
+            locations = locations.subList(0, Math.min(50, locations.size()));
+            
             // Shuffle and pick a subset
             Collections.shuffle(locations);
-            
-            if (locations.isEmpty()) return Collections.emptyList();
             return locations.subList(0, Math.min(subsetSize, locations.size()));
         }
+    
+    private double parseLat(String latStr) {
+        try {
+            return Double.parseDouble(latStr);
+        } catch (NumberFormatException e) {
+            return 0; // fallback
+        }
+    }
+
     
 	@SuppressWarnings("unchecked")
 	public String fetchStreamUrl(String slug) {

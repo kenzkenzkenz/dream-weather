@@ -49,7 +49,7 @@ public class LocationService {
 	public LocationDto findLocationDataByCountry(UserPrefs prefs) {
 	    log.info("Fetching data for country: {} ", prefs.getCountry().getName());
 	    
-	    List<Location> locations = webcamService.fetchWebcams(prefs.getCountry().getIso_code());
+	    List<Location> locations = webcamService.fetchWebcams(prefs);
 
 	    // For each webcam, get gridData and forecast; return first match
 	    for (Location loc : locations) {
@@ -97,7 +97,9 @@ public class LocationService {
 		        	    gridEntity.getGridY());
 
 		        	incrementCall();
-		            
+		        	
+		        	log.info("###Forecast for {}: {}", loc.getSlug(), forecast);	
+		        	
 		            if (weatherService.isWeatherMatch(forecast, prefs)) {
 		            	
 		            	log.info("Found matching weather for precip {} and temp {} at {}",

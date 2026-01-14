@@ -63,7 +63,7 @@ class LocationServiceTest {
         mockWebcam.setCountry(country);
 
         List<Location> webcams = List.of(mockWebcam);
-        when(webcamService.fetchWebcams(country.getIso_code())).thenReturn(webcams);
+        when(webcamService.fetchWebcams(prefs)).thenReturn(webcams);
 
         // --- Mock weather service ---
         when(weatherService.findGridDataByCoordinates(anyString(), anyString()))
