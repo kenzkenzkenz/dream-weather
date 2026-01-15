@@ -6,12 +6,8 @@ import com.dreamweather.backend.persistence.GridDataRepository;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.cache.annotation.Cacheable;
 
-import java.util.Optional;
 import java.util.function.Supplier;
-
-import javax.sql.DataSource;
 
 @Service
 public class GridDataService {
