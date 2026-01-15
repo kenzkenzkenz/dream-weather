@@ -9,7 +9,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -68,23 +67,26 @@ public class WebcamService {
 
     @SuppressWarnings("unchecked")
     public List<Map<String, Object>> fetchWebcams(UserPrefs prefs) {
-        int totalPages = 5;
+        int totalPages = 3; // Number of pages to fetch (out of 5)
         int perPage = 100;
         String countryCode = prefs.getCountry().getIso_code();
 
         ExecutorService executor = Executors.newFixedThreadPool(totalPages);
 
         try {
+            List<Integer> allPages = new ArrayList<>();
+            for (int i = 1; i <= 5; i++) {
+                allPages.add(i);
+            }
+            
+            Collections.shuffle(allPages);
+            List<Integer> selectedPages = allPages.subList(0, totalPages);
+            log.info("## OpenWebcamDB pages to be fetched are: {} ", selectedPages);
+            
             // 1. Fetch pages in parallel
-        	List<CompletableFuture<Map<String, Object>>> futures =
-        	        IntStream.rangeClosed(1, totalPages)
-        	                .mapToObj(page ->
-        	                        CompletableFuture.<Map<String, Object>>supplyAsync(
-        	                                () -> fetchPage(countryCode, perPage, page),
-        	                                executor
-        	                        )
-        	                )
-        	                .collect(Collectors.toList());
+        	List<CompletableFuture<Map<String, Object>>> futures = selectedPages.stream()
+                      .map(page -> CompletableFuture.supplyAsync(() -> fetchPage(countryCode, perPage, page), executor))
+                      .collect(Collectors.toList());
 
             List<Map<String, Object>> pages =
                     futures.stream()
