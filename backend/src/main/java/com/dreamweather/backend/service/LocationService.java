@@ -5,7 +5,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Random;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
@@ -176,14 +176,15 @@ public class LocationService {
 	            .limit(Math.max(halfSize - 5, 0))
 	            .collect(Collectors.toList());
 	    
-	    Collections.shuffle(remainingLocations, new Random(System.nanoTime()));
+	    Collections.shuffle(remainingLocations, ThreadLocalRandom.current());
 
 	    List<Location> combined = new ArrayList<>(remainingLocations);
 	    combined.addAll(topLocations);
 
-	    Collections.shuffle(combined, new Random(System.nanoTime()));
+	    Collections.shuffle(combined, ThreadLocalRandom.current());
 	    
 	    // Return the final sublist of the shuffled list, up to a maximum of 20 locations
 	    return combined.subList(0, Math.min(20, combined.size()));
 	}
+
 }
