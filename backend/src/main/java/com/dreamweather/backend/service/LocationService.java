@@ -1,12 +1,19 @@
 package com.dreamweather.backend.service;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Random;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+import com.dreamweather.backend.cache.WebcamCache;
 import com.dreamweather.backend.dto.LocationDto;
 import com.dreamweather.backend.model.Country;
 import com.dreamweather.backend.model.Forecast;
@@ -24,15 +31,18 @@ public class LocationService {
     private final WeatherService weatherService;
     private final GridDataService gridDataService;
     private final WebcamService webcamService;
+    private final WebcamCache webcamCache;
 
     public LocationService(
             WeatherService weatherService,
             GridDataService gridDataService,
-            WebcamService webcamService
+            WebcamService webcamService,
+            WebcamCache webcamCache
             ) {
         this.weatherService = weatherService;
         this.gridDataService = gridDataService;
         this.webcamService = webcamService;
+        this.webcamCache = webcamCache;
     }
     
     public int getAndResetLocationCount() {
@@ -46,82 +56,95 @@ public class LocationService {
     	requestLocationMatch.set(requestLocationMatch.get() + 1);
     }
     
-	public LocationDto findLocationDataByCountry(UserPrefs prefs) {
-	    log.info("Fetching data for country: {} ", prefs.getCountry().getName());
+    private void sortByClimatePreference(List<Location> locations, UserPrefs prefs) {
+        if ("cold".equalsIgnoreCase(prefs.getTemperature())
+                || "snow".equalsIgnoreCase(prefs.getPrecipitation())) {
+
+            locations.sort((a, b) ->
+                    Double.compare(parseLat(b.getLatitude()), parseLat(a.getLatitude())));
+
+        } else if ("hot".equalsIgnoreCase(prefs.getTemperature())) {
+
+            locations.sort((a, b) ->
+                    Double.compare(parseLat(a.getLatitude()), parseLat(b.getLatitude())));
+        }
+    }
+
+    private double parseLat(String latStr) {
+        try {
+            return Double.parseDouble(latStr);
+        } catch (NumberFormatException e) {
+            return 0; // fallback
+        }
+    }
+    
+	public Optional<LocationDto> findLocationDataByCountry(UserPrefs prefs) {
+        List<Location> locations = webcamCache.getValidWebcams(prefs.getCountry().getIso_code());
+        
+        if (locations == null) {
+            log.info("Cache miss – fetching data for country: {} ", prefs.getCountry().getName());
+            
+            // Fetch from API if cache miss
+            List<Map<String, Object>> fetchedWebcams = webcamService.fetchWebcams(prefs);
+            locations = webcamService.filterSkipLocations(fetchedWebcams, prefs);
+
+            // Store the data in the cache
+            webcamCache.putValidWebcams(prefs.getCountry().getIso_code(), locations);
+        } else {
+            log.info("Cache hit – using cached webcams for country: {} ", prefs.getCountry().getName());
+        }
 	    
-	    List<Location> locations = webcamService.fetchWebcams(prefs);
-
-	    // For each webcam, get gridData and forecast; return first match
-	    for (Location loc : locations) {
-	        String lat = loc.getLatitude();
-	        String lon = loc.getLongitude();
-
-	        if (lat == null || lon == null || loc.getStreamType() == null 
-	        		|| (!loc.getStreamType().equals("youtube") && !loc.getStreamType().equals("iframe"))) {
-	            continue; // skip webcams with missing coordinates
-	        }
-	        double latVal, lonVal;
-	        try {
-	            latVal = Double.parseDouble(lat);
-	            lonVal = Double.parseDouble(lon);
-	        } catch (NumberFormatException e) {
-	            log.warn("Invalid coordinates for {}", loc.getSlug());
-	            continue;
-	        }
-
-	        // Try to get grids from DB first
+	    if(locations == null || locations.isEmpty()) {
+	    	log.info("No webcams available for country {}", prefs.getCountry().getName());
+	    	return Optional.empty();
+	    }
+	    
+	    List<Location> sortedLocations = sortLocationsByPreference(locations, prefs);
+	    
+	    for (Location loc : sortedLocations) {
+            Double latVal = Double.parseDouble(loc.getLatitude());
+            Double lonVal = Double.parseDouble(loc.getLongitude());
+	    		        
 	        GridDataEntity gridEntity = gridDataService.getGridData(latVal, lonVal);
-
-	        // If not found, fetch from weather API and persist
 	        if (gridEntity == null) {
 	            gridEntity = gridDataService.fetchAndPersistGridData(
-	                latVal,
-	                lonVal,
-	                () -> weatherService.findGridDataByCoordinates(lat, lon)
+	                latVal, lonVal, () -> weatherService.findGridDataByCoordinates(loc.getLatitude(), loc.getLongitude())
 	            );
 	        }
 
-	        // Validate the result
-	        if (gridEntity == null ||
-	            gridEntity.getGridId() == null ||
-	            gridEntity.getGridX() == null ||
-	            gridEntity.getGridY() == null) {
+	        if (gridEntity == null || gridEntity.getGridId() == null
+	                || gridEntity.getGridX() == null || gridEntity.getGridY() == null) {
 	            log.warn("Invalid grid data for {}", loc.getSlug());
 	            continue;
 	        }
 
-        		try {
-		        Forecast forecast = weatherService.findForecastByGridData(
-		        	    gridEntity.getGridId(),
-		        	    gridEntity.getGridX(),
-		        	    gridEntity.getGridY());
+	        try {
+	            Forecast forecast = weatherService.findForecastByGridData(
+	                    gridEntity.getGridId(),
+	                    gridEntity.getGridX(),
+	                    gridEntity.getGridY());
 
-		        	incrementCall();
-		        	
-		        	log.info("###Forecast for {}: {}", loc.getSlug(), forecast);	
-		        	
-		            if (weatherService.isWeatherMatch(forecast, prefs)) {
-		            	
-		            	log.info("Found matching weather for precip {} and temp {} at {}",
-		            	        prefs.getPrecipitation(), prefs.getTemperature(), loc.getTitle());
+	            incrementCall();
+	            log.info("###Forecast for {}: {}", loc.getSlug(), forecast);
 
-		            	loc.setForecast(forecast);
-		                
-		                String stream = webcamService.fetchStreamUrl(loc.getSlug());
+	            if (weatherService.isWeatherMatch(forecast, prefs)) {
+	                log.info("Found matching weather for precip {} and temp {} at {}",
+	                         prefs.getPrecipitation(), prefs.getTemperature(), loc.getTitle());
 
-		                return convertWebcamToDto(loc, prefs.getCountry(), stream);
-		            } else {
-		                log.info("Not a weather match at {}", loc.getSlug());
-		            }
+	                loc.setForecast(forecast);
+	                String stream = webcamService.fetchStreamUrl(loc.getSlug());
+
+	                return Optional.of(convertWebcamToDto(loc, prefs.getCountry(), stream));
+	            } else {
+	                log.info("Not a weather match at {}", loc.getSlug());
+	            }
 	        } catch (Exception e) {
 	            log.warn("Forecast lookup failed for {}", loc.getSlug(), e);
 	            continue;
 	        }
 	    }
 
-	    log.info("Found no locations for precip {} and temp {}.",
-	            prefs.getPrecipitation(), prefs.getTemperature());
-
+	    log.info("Found no locations for precip {} and temp {}.", prefs.getPrecipitation(), prefs.getTemperature());
 	    return null;
 	}
 	
@@ -138,5 +161,29 @@ public class LocationService {
 		dto.setStream_type(webcam.getStreamType());
 		dto.setStream_url(streamUrl);
 		return dto;
+	}
+	
+	public List<Location> sortLocationsByPreference(List<Location> locations, UserPrefs prefs) {
+	    int halfSize = Math.max(1, locations.size() / 2);
+	    sortByClimatePreference(locations, prefs);
+	    
+	    List<Location> topLocations = locations.stream()
+	            .limit(5)
+	            .collect(Collectors.toList());
+
+	    List<Location> remainingLocations = locations.stream()
+	            .skip(5)
+	            .limit(Math.max(halfSize - 5, 0))
+	            .collect(Collectors.toList());
+	    
+	    Collections.shuffle(remainingLocations, new Random(System.nanoTime()));
+
+	    List<Location> combined = new ArrayList<>(remainingLocations);
+	    combined.addAll(topLocations);
+
+	    Collections.shuffle(combined, new Random(System.nanoTime()));
+	    
+	    // Return the final sublist of the shuffled list, up to a maximum of 20 locations
+	    return combined.subList(0, Math.min(20, combined.size()));
 	}
 }

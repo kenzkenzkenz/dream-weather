@@ -4,8 +4,12 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
+import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,28 +42,21 @@ public class WebcamService {
         this.authProvider = authProvider;
         this.skippedStreamService = skippedStreamService;
     }
-
-    @SuppressWarnings("unchecked")
-    public List<Location> fetchWebcams(UserPrefs prefs) {
-	    int totalPages = 5;       // Approx. number of pages for US webcams
-	    int perPage = 100;        // Max results per page
-	    int subsetSize = 20;      // How many webcams to consider
-	    String countryCode = prefs.getCountry().getIso_code();
-
-	    // Pick a random page
-	    int randomPage = new Random().nextInt(totalPages) + 1;
-	    String url = "https://openwebcamdb.com/api/v1/countries/" 
-	    		+ countryCode + "?per_page=" + perPage + "&page=" + randomPage;
-
-        ResponseEntity<Map<String, Object>> response;
+    
+    private Map<String, Object> fetchPage(String countryCode, int perPage, int page) {
+        String url = "https://openwebcamdb.com/api/v1/countries/"
+                + countryCode
+                + "?per_page=" + perPage
+                + "&page=" + page;
 
         try {
-            response = restTemplate.exchange(
-                url,
-                HttpMethod.GET,
-                authProvider.entity(),
-                new ParameterizedTypeReference<>() {}
-            );
+            return restTemplate.exchange(
+                    url,
+                    HttpMethod.GET,
+                    authProvider.entity(),
+                    new ParameterizedTypeReference<Map<String, Object>>() {}
+            ).getBody();
+
         } catch (HttpClientErrorException e) {
             if (e.getStatusCode() == HttpStatus.TOO_MANY_REQUESTS) {
                 log.error("OpenWebcamDB rate limit exceeded");
@@ -67,75 +64,103 @@ public class WebcamService {
             }
             throw e;
         }
+    }
 
-        Map<String, Object> body = response.getBody();
-        if (body == null) {
+    @SuppressWarnings("unchecked")
+    public List<Map<String, Object>> fetchWebcams(UserPrefs prefs) {
+        int totalPages = 5;
+        int perPage = 100;
+        String countryCode = prefs.getCountry().getIso_code();
+
+        ExecutorService executor = Executors.newFixedThreadPool(totalPages);
+
+        try {
+            // 1. Fetch pages in parallel
+        	List<CompletableFuture<Map<String, Object>>> futures =
+        	        IntStream.rangeClosed(1, totalPages)
+        	                .mapToObj(page ->
+        	                        CompletableFuture.<Map<String, Object>>supplyAsync(
+        	                                () -> fetchPage(countryCode, perPage, page),
+        	                                executor
+        	                        )
+        	                )
+        	                .collect(Collectors.toList());
+
+            List<Map<String, Object>> pages =
+                    futures.stream()
+                           .map(CompletableFuture::join)
+                           .filter(Objects::nonNull)
+                           .toList();
+
+            // 2. Flatten webcams from all pages
+            List<Map<String, Object>> webcamsRaw =
+                    pages.stream()
+                         .map(page -> (List<Map<String, Object>>) page.get("webcams"))
+                         .filter(Objects::nonNull)
+                         .flatMap(List::stream)
+                         .collect(Collectors.toList());
+            return webcamsRaw;
+
+        } finally {
+            executor.shutdown();
+        }
+    }
+    
+    public List<Location> filterSkipLocations(List<Map<String, Object>> fetchedWebcams, UserPrefs prefs) {
+        if (fetchedWebcams == null || fetchedWebcams.isEmpty()) {
             return Collections.emptyList();
         }
 
-        List<Map<String, Object>> webcamsRaw =
-                (List<Map<String, Object>>) body.getOrDefault("webcams", Collections.emptyList());
-        
-        if (webcamsRaw.isEmpty()) {
-        	log.warn("No locations found for country code: " + countryCode);
-			return Collections.emptyList();
-        }
-        
-        List<String> skippedSlugs = new ArrayList<>();     
+        // 1. Filter out skipped webcams
+        List<String> skippedSlugs = new ArrayList<>();
+        List<Location> validLocations = fetchedWebcams.stream()
+            .filter(data -> {
+                String slug = (String) data.get("slug");
+                String reason = skippedStreamService.getSkipReason(slug);
+                String streamType = (String) data.get("stream_type");
+                
+                // Skip if there's a skip reason or if stream type is invalid (not youtube or iframe)
+                if (reason != null || !("youtube".equals(streamType) || "iframe".equals(streamType))) {
+                    skippedSlugs.add(slug);
+                    return false; // skip this webcam
+                }
+                // Check if latitude and longitude are valid
+                String lat = (String) data.get("latitude");
+                String lon = (String) data.get("longitude");
+                try {
+                    Double.parseDouble(lat);
+                    Double.parseDouble(lon);
+                } catch (NumberFormatException e) {
+                    skippedSlugs.add(slug);
+                    log.warn("Invalid coordinates for {}: Latitude: {}, Longitude: {}", slug, lat, lon);
+                    return false; // Skip this webcam
+                }
 
-            List<Location> locations = webcamsRaw.stream()
-            		.filter(data -> {
-            			String slug = (String) data.get("slug");
-            String reason = skippedStreamService.getSkipReason(slug);
-            
-            if(reason != null) {
-            	skippedSlugs.add(slug);
-            	return false;
-            }
-            return true;
-            		})
-                .map(data -> {
-                    Location l = new Location();
-                    l.setSlug((String) data.get("slug"));
-                    l.setTitle((String) data.get("title"));
-                    l.setDescription((String) data.get("description"));
-                    l.setCity((String) data.get("city"));
-                    l.setLatitude((String) data.get("latitude"));
-                    l.setLongitude((String) data.get("longitude"));
-                    l.setPermalink((String) data.get("permalink"));
-                    l.setStreamType((String) data.get("stream_type"));
-                    return l;
-                })
-                .collect(Collectors.toList());
-            
-            //Log the skipped slugs
-            if (!skippedSlugs.isEmpty()) {
-            	log.info("Skipped locations: {}", String.join(", ",  skippedSlugs));;
-            }
-            
-            // Sort by latitude based on temperature/precipitation prefs
-            if ("cold".equalsIgnoreCase(prefs.getTemperature()) || "snow".equalsIgnoreCase(prefs.getPrecipitation())) {
-                locations.sort((a, b) -> Double.compare(parseLat(b.getLatitude()), parseLat(a.getLatitude())));
-            } else if ("hot".equalsIgnoreCase(prefs.getTemperature())) {
-                locations.sort((a, b) -> Double.compare(parseLat(a.getLatitude()), parseLat(b.getLatitude())));
-            }
-            // Limit to top 50 after sorting
-            locations = locations.subList(0, Math.min(50, locations.size()));
-            
-            // Shuffle and pick a subset
-            Collections.shuffle(locations);
-            return locations.subList(0, Math.min(subsetSize, locations.size()));
+                return true; // Keep this webcam
+            })
+            .map(this::mapToLocation) // Convert to Location object
+            .collect(Collectors.toList());
+
+        if (!skippedSlugs.isEmpty()) {
+            log.info("Skipped locations: {}", String.join(", ", skippedSlugs));
         }
+
+        return validLocations;
+    }
     
-    private double parseLat(String latStr) {
-        try {
-            return Double.parseDouble(latStr);
-        } catch (NumberFormatException e) {
-            return 0; // fallback
-        }
+    private Location mapToLocation(Map<String, Object> data) {
+        Location l = new Location();
+        l.setSlug((String) data.get("slug"));
+        l.setTitle((String) data.get("title"));
+        l.setDescription((String) data.get("description"));
+        l.setCity((String) data.get("city"));
+        l.setLatitude((String) data.get("latitude"));
+        l.setLongitude((String) data.get("longitude"));
+        l.setPermalink((String) data.get("permalink"));
+        l.setStreamType((String) data.get("stream_type"));
+        return l;
     }
 
-    
 	@SuppressWarnings("unchecked")
 	public String fetchStreamUrl(String slug) {
 	    String url = "https://openwebcamdb.com/api/v1/webcams/" + slug;

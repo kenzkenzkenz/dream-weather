@@ -16,6 +16,8 @@ import com.dreamweather.backend.service.EmailService;
 import com.dreamweather.backend.service.LocationService;
 import com.dreamweather.backend.service.WeatherService;
 
+import java.util.Optional;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,7 +47,7 @@ public class LocationController {
     public ResponseEntity<LocationResponse> getLivestreamMatch(
             @Valid @RequestBody UserPrefs prefs) {
 
-        LocationDto webcam = livestreamService.findLocationDataByCountry(prefs);
+        Optional<LocationDto> webcam = livestreamService.findLocationDataByCountry(prefs);
 
         int weatherCallsThisRequest = weatherService.getAndResetRequestCount();
         int locationsChecked = livestreamService.getAndResetLocationCount();
@@ -58,15 +60,17 @@ public class LocationController {
                 prefs.getPrecipitation(),
                 prefs.getTemperature());
 
-        if (webcam == null) {
+        // Check if the Optional contains a value
+        if (webcam == null || webcam.isEmpty()) {
             log.info("[FINAL_MATCH] No matching webcam found");
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body(new LocationResponse(false, "No matches found", null));
         }
 
-        log.info("[FINAL_MATCH] Matching webcam found: {}", webcam.getSlug());
-        return ResponseEntity.ok(new LocationResponse(true, "Match found", webcam));
+        log.info("[FINAL_MATCH] Matching webcam found: {}", webcam.get().getSlug());
+        return ResponseEntity.ok(new LocationResponse(true, "Match found", webcam.get()));
     }
+
 
 	@PostMapping("/livestream/report")
 	public ResponseEntity<String> sendLivestreamReport(@Valid @RequestBody Stream stream) {
