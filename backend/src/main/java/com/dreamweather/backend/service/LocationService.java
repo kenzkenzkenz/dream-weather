@@ -11,6 +11,7 @@ import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
 
@@ -34,17 +35,20 @@ public class LocationService {
     private final GridDataService gridDataService;
     private final WebcamService webcamService;
     private final WebcamCache webcamCache;
+    private final int weatherCap;
 
     public LocationService(
             WeatherService weatherService,
             GridDataService gridDataService,
             WebcamService webcamService,
-            WebcamCache webcamCache
+            WebcamCache webcamCache,
+            @Value("${weather.api.max:20}") int weatherCap
             ) {
         this.weatherService = weatherService;
         this.gridDataService = gridDataService;
         this.webcamService = webcamService;
         this.webcamCache = webcamCache;
+        this.weatherCap = weatherCap;
     }
     
     public int getAndResetLocationCount() {
@@ -187,8 +191,8 @@ public class LocationService {
 
 	    Collections.shuffle(combined, ThreadLocalRandom.current());
 	    
-	    // Return the final sublist of the shuffled list, up to a maximum of 20 locations
-	    return combined.subList(0, Math.min(20, combined.size()));
+	    // Return the final sublist of the shuffled list, up to a maximum of x locations
+	    return combined.subList(0, Math.min(weatherCap, combined.size()));
 	}
 
 }
