@@ -131,6 +131,11 @@ public class LocationService {
 	                    gridEntity.getGridY());
 
 	            incrementCall();
+	            
+	            if (forecast == null) {
+	            	log.warn("No forecast found for {}!", loc.getSlug());
+	            	continue;
+	            }
 	            log.info("Forecast for {}: {}, {} degrees F.", loc.getSlug(), forecast.getShortForecast(), forecast.getTemperature());
 
 	            if (weatherService.isWeatherMatch(forecast, prefs)) {
