@@ -177,12 +177,10 @@ public class WebcamService {
 	    	
 	    } catch (HttpClientErrorException e) {
 	    	if (e.getStatusCode() == HttpStatus.TOO_MANY_REQUESTS) {
-	    		log.error("OpenWebcamDB API rate limit exceeded for fetching stream URL!");
 	    		throw new TooManyRequestsException("OpenWebcamDB API rate limit exceeded");
-	    	} else {
-	    		log.error("Error fetching webcam stream URL: {}!", e.getStatusCode());
-	    		throw e;
 	    	}
+    		log.error("Error fetching webcam stream URL: {}!", e.getStatusCode());
+    		throw e;
 	    }
 	}
 }

@@ -12,9 +12,11 @@ import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpClientErrorException;
 
 import com.dreamweather.backend.cache.WebcamCache;
 import com.dreamweather.backend.dto.LocationDto;
+import com.dreamweather.backend.exception.TooManyRequestsException;
 import com.dreamweather.backend.model.Country;
 import com.dreamweather.backend.model.Forecast;
 import com.dreamweather.backend.model.UserPrefs;
@@ -138,14 +140,16 @@ public class LocationService {
 	            } else {
 	                log.info("Not a weather match at {}.", loc.getSlug());
 	            }
-	        } catch (Exception e) {
-	            log.warn("Forecast lookup failed for {}!", loc.getSlug(), e);
-	            continue;
+	        } catch (TooManyRequestsException e) {
+	                log.error("OpenWebcamDB API rate limit exceeded for fetching stream URL!");
+	                throw e;
+	            } catch (HttpClientErrorException e) {
+		            log.warn("Forecast lookup failed for {}!", loc.getSlug(), e);
+		            continue;
+	            }
 	        }
-	    }
-
-	    log.info("No locations found for precip {} and temp {}.", prefs.getPrecipitation(), prefs.getTemperature());
-	    return null;
+		    log.info("No locations found for precip {} and temp {}.", prefs.getPrecipitation(), prefs.getTemperature());
+		    return null;
 	}
 	
 	public LocationDto convertWebcamToDto(Location webcam, Country country, String streamUrl) {
