@@ -24,6 +24,7 @@ import org.slf4j.LoggerFactory;
 public class WeatherService {
 	
 	private static final String[] RAIN = {"rain"};
+	private static final String[] SNOW = {"snow"};
 	private static final String[] RAIN_WORDS = {"rain", "showers", "shower", "drizzle", "thunderstorm", "thunder", "storms"};
 	private static final String[] SNOW_WORDS = {"snow", "sleet", "blizzard", "flurries"};
 	private static final int HOT_THRESHOLD = 65; // Fahrenheit
@@ -206,10 +207,11 @@ public class WeatherService {
 	    forecast = forecast.toLowerCase();
 
 	    boolean containsRainOnly = Arrays.stream(RAIN).anyMatch(forecast::contains);
+	    boolean containsSnowOnly = Arrays.stream(SNOW).anyMatch(forecast::contains);
 	    boolean containsRain = Arrays.stream(RAIN_WORDS).anyMatch(forecast::contains);
 	    boolean containsSnow = Arrays.stream(SNOW_WORDS).anyMatch(forecast::contains);
 
-	    return (precipPref.equals("rain") && containsRain)
+	    return (precipPref.equals("rain") && containsRain && !containsSnowOnly)
 	        || (precipPref.equals("snow") && containsSnow && !containsRainOnly)
 	        || (precipPref.equals("none") && !containsRain && !containsSnow);
 	}
