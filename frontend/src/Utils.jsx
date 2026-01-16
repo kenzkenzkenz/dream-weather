@@ -3,7 +3,7 @@ export const getMessages = () => {
   msgs.push(
     "Fetching locations…",
     "Checking the forecast…",
-    "Finding the perfect webcam…",
+    "Finding the perfect location…",
     "Almost there…"
   );
   return msgs;
