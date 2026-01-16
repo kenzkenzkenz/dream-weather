@@ -192,6 +192,7 @@ public class LocationService {
 	    Collections.shuffle(combined, ThreadLocalRandom.current());
 	    
 	    // Return the final sublist of the shuffled list, up to a maximum of x locations
+	    log.info("Max Weather calls capped at {} calls", weatherCap);
 	    return combined.subList(0, Math.min(weatherCap, combined.size()));
 	}
 
