@@ -43,6 +43,7 @@ public class WebcamService {
     }
     
     private Map<String, Object> fetchPage(String countryCode, int perPage, int page) {
+    	log.info("Calling OpenWebcamDB API for country: {}, page: {}...", countryCode, page);
         String url = "https://openwebcamdb.com/api/v1/countries/"
                 + countryCode
                 + "?per_page=" + perPage
@@ -58,7 +59,7 @@ public class WebcamService {
 
         } catch (HttpClientErrorException e) {
             if (e.getStatusCode() == HttpStatus.TOO_MANY_REQUESTS) {
-                log.error("OpenWebcamDB rate limit exceeded");
+                log.error("OpenWebcamDB rate limit exceeded for fetching locations");
                 throw new TooManyRequestsException("OpenWebcamDB API rate limit exceeded");
             }
             throw e;
@@ -81,7 +82,7 @@ public class WebcamService {
             
             Collections.shuffle(allPages);
             List<Integer> selectedPages = allPages.subList(0, totalPages);
-            log.info("## OpenWebcamDB pages to be fetched are: {} ", selectedPages);
+            log.info("OpenWebcamDB pages to be fetched are: {} ", selectedPages);
             
             // 1. Fetch pages in parallel
         	List<CompletableFuture<Map<String, Object>>> futures = selectedPages.stream()
@@ -166,7 +167,7 @@ public class WebcamService {
 	@SuppressWarnings("unchecked")
 	public String fetchStreamUrl(String slug) {
 	    String url = "https://openwebcamdb.com/api/v1/webcams/" + slug;
-	    
+	    log.info("Calling OpenWebcamDB API for stream URL of webcam: {}...", slug);
 	    try {
 		    ResponseEntity<Map<String, Object>> response =
 			        restTemplate.exchange(
@@ -186,11 +187,11 @@ public class WebcamService {
 	    	
 	    } catch (HttpClientErrorException e) {
 	    	if (e.getStatusCode() == HttpStatus.TOO_MANY_REQUESTS) {
-	    		log.error("Rate limit exceeded when accessing OpenWebcamDB API for stream URL");
-	    		return null;
+	    		log.error("OpenWebcamDB API rate limit exceeded for fetching stream URL");
+	    		throw new TooManyRequestsException("OpenWebcamDB API rate limit exceeded");
 	    	} else {
 	    		log.error("Error fetching webcam stream URL: " + e.getStatusCode());
-	    		return null;
+	    		throw e;
 	    	}
 	    }
 	}
