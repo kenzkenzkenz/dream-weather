@@ -4,10 +4,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
@@ -59,7 +56,7 @@ public class WebcamService {
 
         } catch (HttpClientErrorException e) {
             if (e.getStatusCode() == HttpStatus.TOO_MANY_REQUESTS) {
-                log.error("OpenWebcamDB rate limit exceeded for fetching locations");
+                log.error("OpenWebcamDB rate limit exceeded for fetching locations!");
                 throw new TooManyRequestsException("OpenWebcamDB API rate limit exceeded");
             }
             throw e;
@@ -71,42 +68,37 @@ public class WebcamService {
         int totalPages = 3; // Number of pages to fetch (out of 5)
         int perPage = 100;
         String countryCode = prefs.getCountry().getIso_code();
-
-        ExecutorService executor = Executors.newFixedThreadPool(totalPages);
-
-        try {
-            List<Integer> allPages = new ArrayList<>();
-            for (int i = 1; i <= 5; i++) {
-                allPages.add(i);
-            }
-            
-            Collections.shuffle(allPages);
-            List<Integer> selectedPages = allPages.subList(0, totalPages);
-            log.info("OpenWebcamDB pages to be fetched are: {} ", selectedPages);
-            
-            // 1. Fetch pages in parallel
-        	List<CompletableFuture<Map<String, Object>>> futures = selectedPages.stream()
-                      .map(page -> CompletableFuture.supplyAsync(() -> fetchPage(countryCode, perPage, page), executor))
-                      .collect(Collectors.toList());
-
-            List<Map<String, Object>> pages =
-                    futures.stream()
-                           .map(CompletableFuture::join)
-                           .filter(Objects::nonNull)
-                           .toList();
-
-            // 2. Flatten webcams from all pages
-            List<Map<String, Object>> webcamsRaw =
-                    pages.stream()
-                         .map(page -> (List<Map<String, Object>>) page.get("webcams"))
-                         .filter(Objects::nonNull)
-                         .flatMap(List::stream)
-                         .collect(Collectors.toList());
-            return webcamsRaw;
-
-        } finally {
-            executor.shutdown();
+        
+        List<Integer> allPages = new ArrayList<>();
+        for (int i = 1; i <= 5; i++) {
+            allPages.add(i);
         }
+        
+        Collections.shuffle(allPages);
+        List<Integer> selectedPages = allPages.subList(0, totalPages);
+        log.info("OpenWebcamDB pages to be fetched are: {}. ", selectedPages);
+        
+        List<Map<String, Object>> allWebcams = new ArrayList<>();
+        selectedPages.forEach(pg -> {
+            try {
+                // Fetch data for each page linearly
+                Map<String, Object> pageData = fetchPage(countryCode, perPage, pg);
+                if (pageData != null && pageData.containsKey("webcams")) {
+                    List<Map<String, Object>> webcams = (List<Map<String, Object>>) pageData.get("webcams");
+                    if (webcams != null) {
+                        allWebcams.addAll(webcams);  // Collect webcams from each page
+                    }
+                }
+            } catch (TooManyRequestsException e) {
+        	    log.error("OpenWebcamDB rate limit exceeded for page {}! Stopping further requests.", pg);
+        	    throw e;
+            } catch (Exception e) {
+                log.error("Error fetching page {}!", pg, e.getMessage());
+                throw e;
+            }
+        });
+
+        return allWebcams;
     }
     
     public List<Location> filterSkipLocations(List<Map<String, Object>> fetchedWebcams, UserPrefs prefs) {
@@ -135,7 +127,7 @@ public class WebcamService {
                     Double.parseDouble(lon);
                 } catch (NumberFormatException e) {
                     skippedSlugs.add(slug);
-                    log.warn("Invalid coordinates for {}: Latitude: {}, Longitude: {}", slug, lat, lon);
+                    log.warn("Invalid coordinates for {}: Latitude: {}, Longitude: {}!", slug, lat, lon);
                     return false; // Skip this webcam
                 }
 
@@ -145,7 +137,7 @@ public class WebcamService {
             .collect(Collectors.toList());
 
         if (!skippedSlugs.isEmpty()) {
-            log.info("Skipped locations: {}", String.join(", ", skippedSlugs));
+            log.info("Skipping {} locations due to dead or irrelevant livestreams.", skippedSlugs.size());
         }
 
         return validLocations;
@@ -176,21 +168,19 @@ public class WebcamService {
 			            authProvider.entity(),
 			            new ParameterizedTypeReference<Map<String, Object>>() {}
 			        );
-
-			    Map<String, Object> body = response.getBody();
-			    if (body == null) return null;
-
-			    Map<String, Object> data = (Map<String, Object>) body.get("data");
-			    if (data == null) return null;
-
-			    return (String) data.get("stream_url");
+		    
+	        Map<String, Object> body = response.getBody();
+	        return Optional.ofNullable(body)
+	                .map(b -> (Map<String, Object>) b.get("data"))
+	                .map(data -> (String) data.get("stream_url"))
+	                .orElse(null);
 	    	
 	    } catch (HttpClientErrorException e) {
 	    	if (e.getStatusCode() == HttpStatus.TOO_MANY_REQUESTS) {
-	    		log.error("OpenWebcamDB API rate limit exceeded for fetching stream URL");
+	    		log.error("OpenWebcamDB API rate limit exceeded for fetching stream URL!");
 	    		throw new TooManyRequestsException("OpenWebcamDB API rate limit exceeded");
 	    	} else {
-	    		log.error("Error fetching webcam stream URL: " + e.getStatusCode());
+	    		log.error("Error fetching webcam stream URL: {}!", e.getStatusCode());
 	    		throw e;
 	    	}
 	    }
