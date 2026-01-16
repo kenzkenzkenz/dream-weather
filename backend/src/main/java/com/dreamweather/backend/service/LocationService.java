@@ -125,11 +125,11 @@ public class LocationService {
 	                    gridEntity.getGridY());
 
 	            incrementCall();
-	            log.info("###Forecast for {}: {}", loc.getSlug(), forecast);
+	            log.info("Forecast for {}: {}, {} degrees F", loc.getSlug(), forecast.getShortForecast(), forecast.getTemperature());
 
 	            if (weatherService.isWeatherMatch(forecast, prefs)) {
 	                log.info("Found matching weather for precip {} and temp {} at {}",
-	                         prefs.getPrecipitation(), prefs.getTemperature(), loc.getTitle());
+	                         prefs.getPrecipitation(), prefs.getTemperature(), loc.getSlug());
 
 	                loc.setForecast(forecast);
 	                String stream = webcamService.fetchStreamUrl(loc.getSlug());
@@ -144,7 +144,7 @@ public class LocationService {
 	        }
 	    }
 
-	    log.info("Found no locations for precip {} and temp {}.", prefs.getPrecipitation(), prefs.getTemperature());
+	    log.info("No locations found for precip {} and temp {}.", prefs.getPrecipitation(), prefs.getTemperature());
 	    return null;
 	}
 	
