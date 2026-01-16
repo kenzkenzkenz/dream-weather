@@ -59,7 +59,7 @@ public class WeatherService {
 		Long start = System.nanoTime();
 		
 		try {
-			log.info("Requesting grid data for coordinates: {}/{}", lat, lon);
+			log.info("Calling Weather API to fetch grid data for coords: {}/{}...", lat, lon);
 			
             ResponseEntity<Map<String, Object>> response =
                     restTemplate.exchange(
@@ -71,10 +71,10 @@ public class WeatherService {
             incrementCall();
             
             long durationMs = (System.nanoTime() - start) / 1_000_000;
-            log.info("~~~Weather.gov grid call took {} ms~~~", durationMs);
+            log.info("Weather.gov grid call took {} ms.", durationMs);
 			
 			if (!response.getStatusCode().is2xxSuccessful()) {
-			    log.error("~~~Non-success HTTP status {} for lat={}, lon={}~~~", 
+			    log.error("Non-success HTTP status {} for lat={}, lon={}!", 
 			            response.getStatusCode(), lat, lon);
 			    return null;
 			}
@@ -91,7 +91,7 @@ public class WeatherService {
 			    if (gridId != null && gridX != null && gridY != null) {
 			        return new GridData(gridId, gridX.toString(), gridY.toString());
 			    } else {
-			        log.error("Incomplete grid data for lat={}, lon={}", lat, lon);
+			        log.error("Incomplete grid data for lat={}, lon={}!", lat, lon);
 			    }
 			}
 			return null;
@@ -99,14 +99,14 @@ public class WeatherService {
 		} catch (HttpStatusCodeException e) {
 	        long durationMs = (System.nanoTime() - start) / 1_000_000;
 	        log.error(
-	            "~~~Weather.gov HTTP error {} after {} ms for lat={}, lon={}: {}~~~",
+	            "Weather.gov HTTP error {} after {} ms for lat={}, lon={}: {}!",
 	            e.getStatusCode(), durationMs, lat, lon, e.getResponseBodyAsString()
 	        );
 		        return null;
 		    } catch (RestClientException e) {
 		        long durationMs = (System.nanoTime() - start) / 1_000_000;
 		        log.error(
-		            "~~~Weather.gov request failed after {} ms for lat={}, lon={}: {}~~~",
+		            "Weather.gov request failed after {} ms for lat={}, lon={}: {}!",
 		            durationMs, lat, lon, e.getMessage()
 		        );
 		        return null;
@@ -119,7 +119,7 @@ public class WeatherService {
 		Long start = System.nanoTime();
 	    
 	    try {
-			log.info("Requesting forecast for grid {}/{}", gridId, gridX + "," + gridY);
+			log.info("Calling Weather API to fetch forecast for grid {}/{}...", gridId, gridX + "," + gridY);
 			
 			
             ResponseEntity<Map<String, Object>> response =
@@ -132,18 +132,18 @@ public class WeatherService {
             incrementCall();
             
             long durationMs = (System.nanoTime() - start) / 1_000_000;
-            log.info("~~~~Weather.gov forecast call took {} ms~~~", durationMs);
+            log.info("Weather API forecast call took {} ms.", durationMs);
 	        
 	        Map<String, Object> body = response.getBody();
 	        if (body == null) {
-	            log.error("Empty forecast response");
+	            log.error("Empty forecast response!");
 	            return null;
 	        }
 
 	        @SuppressWarnings("unchecked")
 			Map<String, Object> properties = (Map<String, Object>) body.get("properties");
 	        if (properties == null) {
-	            log.error("Missing properties in forecast response");
+	            log.error("Missing properties in forecast response!");
 	            return null;
 	        }
 
@@ -151,7 +151,7 @@ public class WeatherService {
 			List<Map<String, Object>> periods =
 	            (List<Map<String, Object>>) properties.get("periods");
 	        if (periods == null || periods.isEmpty()) {
-	            log.error("No forecast periods returned");
+	            log.error("No forecast periods returned!");
 	            return null;
 	        }
 
@@ -165,12 +165,12 @@ public class WeatherService {
 
 	    } catch (HttpStatusCodeException e) {
 	    	long durationMs = (System.nanoTime() - start) / 1_000_000;
-	        log.error("~~~Weather.gov HTTP error {} failed after {} ms for grid {}/{}: {}~~~", 
+	        log.error("Weather API HTTP error {} failed after {} ms for grid {}/{}: {}.", 
 	        		e.getStatusCode(), durationMs, gridId, gridX + "," + gridY, e.getResponseBodyAsString());
 	        
 	    } catch (RestClientException e) {
 	    	long durationMs = (System.nanoTime() - start) / 1_000_000;
-	        log.error("~~~Weather.gov request failed after {} ms for grid {}/{}: {}~~~", 
+	        log.error("Weather.gov request failed after {} ms for grid {}/{}: {}.", 
 	                durationMs, gridId, gridX + "," + gridY, e.getMessage());
 	    }
 	    
@@ -190,7 +190,8 @@ public class WeatherService {
 	    boolean isTempMatch = isTemperatureMatch(forecast.getTemperature(), tempPref, HOT_THRESHOLD);
 	    boolean isPrecipMatch = isPrecipitationMatch(shortForecast, precipPref);
 
-	    log.debug("Evaluating weather match: Forecast='{}', Temp={}, UserPrefs: TempPref='{}', PrecipPref='{}' -> TempMatch={}, PrecipMatch={}",
+	    log.debug("Evaluating weather match: Forecast='{}', Temp={}, UserPrefs: TempPref='{}', PrecipPref='{}' "
+	    		+ "-> TempMatch={}, PrecipMatch={}...",
 	              shortForecast, forecast.getTemperature(), tempPref, precipPref, isTempMatch, isPrecipMatch);
 
 	    return isTempMatch && isPrecipMatch;

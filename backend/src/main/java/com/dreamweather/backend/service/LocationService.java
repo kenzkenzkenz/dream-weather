@@ -82,7 +82,7 @@ public class LocationService {
         List<Location> locations = webcamCache.getValidWebcams(prefs.getCountry().getIso_code());
         
         if (locations == null) {
-            log.info("Cache miss – fetching data for country: {} ", prefs.getCountry().getName());
+            log.info("Cache miss – fetching data for country: {}. ", prefs.getCountry().getName());
             
             // Fetch from API if cache miss
             List<Map<String, Object>> fetchedWebcams = webcamService.fetchWebcams(prefs);
@@ -91,11 +91,11 @@ public class LocationService {
             // Store the data in the cache
             webcamCache.putValidWebcams(prefs.getCountry().getIso_code(), locations);
         } else {
-            log.info("Cache hit – using cached webcams for country: {} ", prefs.getCountry().getName());
+            log.info("Cache hit – using cached webcams for country: {}. ", prefs.getCountry().getName());
         }
 	    
 	    if(locations == null || locations.isEmpty()) {
-	    	log.info("No webcams available for country {}", prefs.getCountry().getName());
+	    	log.info("No webcams available for country {}!", prefs.getCountry().getName());
 	    	return Optional.empty();
 	    }
 	    
@@ -114,7 +114,7 @@ public class LocationService {
 
 	        if (gridEntity == null || gridEntity.getGridId() == null
 	                || gridEntity.getGridX() == null || gridEntity.getGridY() == null) {
-	            log.warn("Invalid grid data for {}", loc.getSlug());
+	            log.warn("Invalid grid data for {}!", loc.getSlug());
 	            continue;
 	        }
 
@@ -125,10 +125,10 @@ public class LocationService {
 	                    gridEntity.getGridY());
 
 	            incrementCall();
-	            log.info("Forecast for {}: {}, {} degrees F", loc.getSlug(), forecast.getShortForecast(), forecast.getTemperature());
+	            log.info("Forecast for {}: {}, {} degrees F.", loc.getSlug(), forecast.getShortForecast(), forecast.getTemperature());
 
 	            if (weatherService.isWeatherMatch(forecast, prefs)) {
-	                log.info("Found matching weather for precip {} and temp {} at {}",
+	                log.info("Found matching weather for precip {} and temp {} at {}.",
 	                         prefs.getPrecipitation(), prefs.getTemperature(), loc.getSlug());
 
 	                loc.setForecast(forecast);
@@ -136,10 +136,10 @@ public class LocationService {
 
 	                return Optional.of(convertWebcamToDto(loc, prefs.getCountry(), stream));
 	            } else {
-	                log.info("Not a weather match at {}", loc.getSlug());
+	                log.info("Not a weather match at {}.", loc.getSlug());
 	            }
 	        } catch (Exception e) {
-	            log.warn("Forecast lookup failed for {}", loc.getSlug(), e);
+	            log.warn("Forecast lookup failed for {}!", loc.getSlug(), e);
 	            continue;
 	        }
 	    }
