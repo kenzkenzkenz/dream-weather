@@ -6,8 +6,7 @@ export default function Form({ onSubmit }) {
         'name': 'United States',
         'iso_code': 'US',
     }
-    const maintenanceMode = process.env.MAINTENANCE_MODE == 'true';
-    console.log("MAINTENCE_MODE: ", maintenanceMode);
+    const maintenanceMode = true;
 
     const [country, setCountry] = useState(countryObj);
     const [precip, setPrecip] = useState();
