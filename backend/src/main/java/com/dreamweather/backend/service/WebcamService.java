@@ -50,7 +50,7 @@ public class WebcamService {
             return restTemplate.exchange(
                     url,
                     HttpMethod.GET,
-                    authProvider.entity(),
+                    authProvider.entity1(),
                     new ParameterizedTypeReference<Map<String, Object>>() {}
             ).getBody();
 
@@ -165,7 +165,7 @@ public class WebcamService {
 			        restTemplate.exchange(
 			            url,
 			            HttpMethod.GET,
-			            authProvider.entity(),
+			            authProvider.entity2(),
 			            new ParameterizedTypeReference<Map<String, Object>>() {}
 			        );
 		    
