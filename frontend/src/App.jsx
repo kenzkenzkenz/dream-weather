@@ -8,7 +8,8 @@ import { PuffLoader, DotLoader } from "react-spinners";
 
 function App() {
   const [match, setMatch] = useState(null);
-  const [status, setStatus] = useState('idle'); // 'idle' | 'loading' | 'error' | 'success' | 'no-data' | 'rate-limit'
+  const [status, setStatus] = useState('idle'); 
+  // 'idle' | 'loading' | 'error' | 'success' | 'no-data' | 'rate-limit' | 'forbidden
   const [isServerAwake, setIsServerAwake] = useState(false);
   const [reportThanks, setReportThanks] = useState("");
   const [reportLoader, setReportLoader] = useState(false);
@@ -56,6 +57,9 @@ function App() {
       if (!response.ok) {
         if (response.status === 404) {
           setStatus('no-data');
+        }
+        else if (response.status === 403) {
+          setStatus('forbidden');
         }
         else if (response.status === 429) {
           setStatus('rate-limit');
@@ -139,6 +143,12 @@ function App() {
       {status === "rate-limit" && (
         <div>
           <p>Too many requests! Maybe take a break and go outside.</p>
+          <TryAgainButton onClick={() => setStatus("idle")} />
+        </div>
+      )}
+      {status === "forbidden" && (
+        <div>
+          <p>A third-party server is currently down. We're working to resolve the issue.</p>
           <TryAgainButton onClick={() => setStatus("idle")} />
         </div>
       )}
