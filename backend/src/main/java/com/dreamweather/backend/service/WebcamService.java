@@ -17,6 +17,7 @@ import org.springframework.web.client.RestTemplate;
 
 import com.dreamweather.backend.model.Location;
 import com.dreamweather.backend.model.UserPrefs;
+import com.dreamweather.backend.exception.ForbiddenException;
 import com.dreamweather.backend.exception.TooManyRequestsException;
 import com.dreamweather.backend.http.OpenWebcamAuthProvider;
 
@@ -59,6 +60,10 @@ public class WebcamService {
                 log.error("OpenWebcamDB rate limit exceeded for fetching locations!");
                 throw new TooManyRequestsException("OpenWebcamDB API rate limit exceeded");
             }
+            if (e.getStatusCode() == HttpStatus.FORBIDDEN) {
+                log.error("OpenWebcamDB's server is down!");
+                throw new ForbiddenException("OpenWebcanDB's server is down.");
+            }
             throw e;
         }
     }
@@ -92,6 +97,9 @@ public class WebcamService {
             } catch (TooManyRequestsException e) {
         	    log.error("OpenWebcamDB rate limit exceeded for page {}! Stopping further requests.", pg);
         	    throw e;
+            } catch (ForbiddenException e) {
+            	    log.error("OpenWebcamDB's server is down! Stopping further requests.", pg);
+            	    throw e;
             } catch (Exception e) {
                 log.error("Error fetching page {}!", pg, e.getMessage());
                 throw e;
