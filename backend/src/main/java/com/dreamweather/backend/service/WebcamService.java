@@ -70,7 +70,7 @@ public class WebcamService {
 
     @SuppressWarnings("unchecked")
     public List<Map<String, Object>> fetchWebcams(UserPrefs prefs) {
-        int totalPages = 3; // Number of pages to fetch (out of 5)
+        int totalPages = 5; // Number of pages to fetch (out of 5)
         int perPage = 100;
         String countryCode = prefs.getCountry().getIso_code();
         
@@ -79,7 +79,6 @@ public class WebcamService {
             allPages.add(i);
         }
         
-        Collections.shuffle(allPages);
         List<Integer> selectedPages = allPages.subList(0, totalPages);
         log.info("OpenWebcamDB pages to be fetched are: {}. ", selectedPages);
         
