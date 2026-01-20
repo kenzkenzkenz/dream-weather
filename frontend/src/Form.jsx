@@ -6,6 +6,8 @@ export default function Form({ onSubmit }) {
         'name': 'United States',
         'iso_code': 'US',
     }
+    const maintenanceMode = process.env.MAINTENANCE_MODE === 'true';
+
     const [country, setCountry] = useState(countryObj);
     const [precip, setPrecip] = useState();
     const [temp, setTemp] = useState();
@@ -42,6 +44,26 @@ export default function Form({ onSubmit }) {
 
     return (
         <>
+            <div
+                style={{
+                    background: maintenanceMode ? '#d8eaf7' : 'transparent',
+                    color: maintenanceMode ? 'rgb(51, 41, 41)' : 'transparent',
+                    padding: '12px',
+                    marginBottom: '16px',
+                    borderRadius: '6px',
+                    fontWeight: 'bold',
+                    textAlign: 'center',
+                    marginTop: '80px',
+                    border: maintenanceMode ? '1px solid rgb(134, 129, 129)' : '1px solid transparent',
+                    visibility: maintenanceMode ? 'visible' : 'hidden',
+                }}
+            >
+                {
+                    <p>Please note: Some Features are temporarily unavailable due to an issue with an external service provider.
+                        <br></br>We are working to resolve it as quickly as possible.</p>
+                    || 'placeholder'}
+            </div>
+
             <div
                 style={{
                     background: warning ? '#ffe0e0' : 'transparent',
