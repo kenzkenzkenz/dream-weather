@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import Title from './Title';
 
 export default function Form({ onSubmit }) {
 
@@ -80,8 +81,7 @@ export default function Form({ onSubmit }) {
                 {warning || 'placeholder'}
             </div>
 
-            <h1>Dream Weather</h1>
-            <p>Tell us what weather you want, and we'll send you there.</p>
+            <Title></Title>
 
             <form onSubmit={handleSubmit}>
                 <strong>Precipitation</strong>

@@ -1,5 +1,6 @@
 import React from 'react';
 import YoutubeConvert from './YoutubeConvert';
+import Title from './Title';
 
 export default function Match({ match }) {
   // Determine if YouTube or iframe stream
@@ -10,7 +11,7 @@ export default function Match({ match }) {
 
   return (
     <div className="match-container">
-      <h1>Dream Weather</h1>
+      <Title></Title>
       <h2>{match?.data?.title}, {match?.data?.country?.name}</h2>
       <p>Current Conditions: {match?.data?.forecast?.shortForecast}, {match?.data?.forecast?.temperature}&deg; F</p>
       <p>{match?.data?.description}</p>
