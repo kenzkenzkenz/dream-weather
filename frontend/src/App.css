@@ -17,6 +17,10 @@
   height: 70px;
 }
 
+.title {
+  align-items: center;
+}
+
 .match-container {
   max-width: 100%;
   padding: 1rem;
