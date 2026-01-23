@@ -142,14 +142,14 @@
   .header {
     display: flex;
     align-items: center;
-    gap: 12px;
-    margin-right: 30px;
+    gap: 2px;
+    margin-right: 10px;
 }
 
   .logo {
     height: 50px;
     margin-bottom: 3px;
-    margin-left: 12px;
+    padding-right: 4px;
   }
 
   .title {
@@ -164,8 +164,7 @@
   }
 
   .report-button {
-    color: #f0f0f0;
-    background-color: #333;
+    color: #444;
   }
 
   .report-button:hover {
