@@ -83,9 +83,9 @@ export default function Form({ onSubmit }) {
 
             <Title></Title>
 
-            <form onSubmit={handleSubmit}>
+            <form onSubmit={handleSubmit} style={{ padding: "20px" }}>
                 <strong>Precipitation</strong>
-                <div>
+                <div style={{ padding: "10px" }}>
                     <label style={{ marginRight: "20px" }}>
                         <input
                             type="radio"
@@ -120,7 +120,7 @@ export default function Form({ onSubmit }) {
                 <br />
 
                 <strong>Temperature</strong>
-                <div>
+                <div style={{ padding: "10px" }}>
                     <label style={{ marginRight: "20px" }}>
                         <input
                             type="radio"
