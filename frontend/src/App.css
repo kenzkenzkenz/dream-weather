@@ -151,15 +151,17 @@
     align-items: center;
     gap: 2px;
     margin-right: 10px;
+    justify-content: center;
   }
 
   .logo {
     height: 50px;
     margin-bottom: 3px;
-    padding-right: 4px;
+    padding-left: 4px;
   }
 
   .title {
     font-size: xx-large;
+    text-align: center;
   }
 }
