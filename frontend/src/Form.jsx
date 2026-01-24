@@ -82,6 +82,9 @@ export default function Form({ onSubmit }) {
             </div>
 
             <Title></Title>
+            <p>
+                Tell us what vibe you want, and we'll send you to the perfect location.
+            </p>
 
             <form onSubmit={handleSubmit} style={{ padding: "20px" }}>
                 <strong>Precipitation</strong>
