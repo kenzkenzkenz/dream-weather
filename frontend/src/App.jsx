@@ -14,7 +14,10 @@ function App() {
   const [reportThanks, setReportThanks] = useState("");
   const [reportLoader, setReportLoader] = useState(false);
   const hasCalledWakeUp = useRef(false);
-  const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8080';
+  // During development always use a relative URL so MSW (Mock Service Worker)
+  // can intercept requests. Ignore `VITE_BACKEND_URL` in DEV to avoid the
+  // .env value pointing to a remote backend and causing CORS.
+  const backendUrl = import.meta.env.DEV ? '' : (import.meta.env.VITE_BACKEND_URL ?? 'http://localhost:8080');
   const headers = {
     'Content-Type': 'application/json',
   };
