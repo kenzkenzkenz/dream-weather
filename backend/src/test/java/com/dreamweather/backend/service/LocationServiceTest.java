@@ -31,9 +31,6 @@ class LocationServiceTest {
 
     @Mock
     private WebcamService webcamService;
-//
-//    @Mock
-//    private WebcamCache webcamCache;
 
     private UserPrefs prefs;
 
