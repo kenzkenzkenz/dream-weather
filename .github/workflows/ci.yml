@@ -50,7 +50,7 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: '20.x'
-          
+
       - name: Cache Node modules
         uses: actions/cache@v3
         with:
@@ -63,7 +63,7 @@ jobs:
         run: npm ci
 
       - name: Run unit tests
-        run: npm run test -- --ci --coverage
+        run: npx vitest run
 
       - name: Build project
         run: npm run build
