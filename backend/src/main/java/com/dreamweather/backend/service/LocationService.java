@@ -63,7 +63,8 @@ public class LocationService {
     }
     
     private void sortByClimatePreference(List<Location> locations, UserPrefs prefs) {
-        if ("snow".equalsIgnoreCase(prefs.getPrecipitation())) {
+        if ("snow".equalsIgnoreCase(prefs.getPrecipitation()) || 
+        		"cold".equalsIgnoreCase(prefs.getTemperature())) {
 
             locations.sort((a, b) ->
                     Double.compare(parseLat(b.getLatitude()), parseLat(a.getLatitude())));

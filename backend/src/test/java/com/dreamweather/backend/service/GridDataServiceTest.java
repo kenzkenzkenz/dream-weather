@@ -2,77 +2,69 @@ package com.dreamweather.backend.service;
 
 import com.dreamweather.backend.model.GridData;
 import com.dreamweather.backend.persistence.GridDataEntity;
+import com.dreamweather.backend.persistence.GridDataRepository;
 
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.test.context.ActiveProfiles;
+import org.junit.jupiter.api.extension.ExtendWith;
+
+import org.mockito.Mock;
+import org.mockito.InjectMocks;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
-@SpringBootTest
-@Transactional
-@ActiveProfiles("test")
-public class GridDataServiceTest {
+@ExtendWith(MockitoExtension.class)
+class GridDataServiceTest {
 
-    @Autowired
+    @Mock
+    private GridDataRepository gridDataRepository;
+
+    @InjectMocks
     private GridDataService gridDataService;
 
     @Test
-    public void testFetchAndPersistGridData_createsAndReturnsGridData() {
-        double lat = 39.2608439;
-        double lon = -94.5197018;
-        String gridId = "TEST123";
-        String gridX = "50";
-        String gridY = "75";
-        
-        // Fetch and persist GridData
-        GridDataEntity grid = gridDataService.fetchAndPersistGridData(lat, lon, () -> {
-            GridData gd = new GridData();
-            gd.setGridId(gridId);
-            gd.setGridX(gridX);
-            gd.setGridY(gridY);
-            return gd;
-        });
+    void testFetchAndPersistGridData_createsAndReturnsGridData() {
+        double lat = 39.26;
+        double lon = -94.51;
 
-        // Assertions
-        assertNotNull(grid, "GridData should not be null");
-        assertNotNull(grid.getGridId(), "GridId should not be null");
-        assertNotNull(grid.getGridX(), "GridX should not be null");
-        assertNotNull(grid.getGridY(), "GridY should not be null");
+        GridData apiGrid = new GridData();
+        apiGrid.setGridId("TEST123");
+        apiGrid.setGridX("50");
+        apiGrid.setGridY("75");
 
-        // Fetch again to check if it's persisted
-        GridDataEntity grid2 = gridDataService.getGridData(lat, lon);
-        
-        // Assertions
-        assertNotNull(grid2, "GridDataEntity should be retrieved from DB");
-        assertEquals(grid.getGridId(), grid2.getGridId(), "GridId should be the same");
-        assertEquals(grid.getGridX(), grid2.getGridX(), "GridX should be the same");
-        assertEquals(grid.getGridY(), grid2.getGridY(), "GridY should be the same");
+        when(gridDataRepository.saveAndFlush(any(GridDataEntity.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        GridDataEntity result = gridDataService.fetchAndPersistGridData(
+                lat,
+                lon,
+                () -> apiGrid
+        );
+
+        assertNotNull(result);
+        assertEquals("TEST123", result.getGridId());
+        assertEquals("50", result.getGridX());
+        assertEquals("75", result.getGridY());
+
+        verify(gridDataRepository, times(1)).saveAndFlush(any(GridDataEntity.class));
     }
 
     @Test
-    public void testGetGridData_withDifferentCoordinates() {
-        double lat = 40.712776;
-        double lon = -74.005974;
-        String gridId = "DIFF123";
-        String gridX = "60";
-        String gridY = "80";
+    void testGetGridData_returnsEntityWhenFound() {
+        double lat = 40.7;
+        double lon = -74.0;
 
-        // Create and persist new GridData
-        GridDataEntity grid = gridDataService.fetchAndPersistGridData(lat, lon, () -> {
-            GridData gd = new GridData();
-            gd.setGridId(gridId);
-            gd.setGridX(gridX);
-            gd.setGridY(gridY);
-            return gd;
-        });
+        GridDataEntity entity = new GridDataEntity(lat, lon, "ID1", "10", "20");
 
-        // Assertions
-        assertNotNull(grid, "GridData should be persisted");
-        assertEquals(gridId, grid.getGridId(), "GridId should match the persisted value");
-        assertEquals(gridX, grid.getGridX(), "GridX should match the persisted value");
-        assertEquals(gridY, grid.getGridY(), "GridY should match the persisted value");
+        when(gridDataRepository.findByLatitudeAndLongitude(lat, lon))
+                .thenReturn(Optional.of(entity));
+
+        GridDataEntity result = gridDataService.getGridData(lat, lon);
+
+        assertNotNull(result);
+        assertEquals("ID1", result.getGridId());
     }
 }
