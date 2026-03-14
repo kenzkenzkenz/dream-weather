@@ -18,6 +18,7 @@ const mockMatch = {
 export const handlers = [
   // Wakeup endpoint
   http.get('/api/v1/wakeup', async (info) => {
+    await new Promise((r) => setTimeout(r, 2500))
     return new Response(JSON.stringify({ ok: true }), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
@@ -32,7 +33,7 @@ export const handlers = [
     } catch (e) {
       // ignore
     }
-    await new Promise((r) => setTimeout(r, 500))
+    await new Promise((r) => setTimeout(r, 1500))
     return new Response(JSON.stringify(mockMatch), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
